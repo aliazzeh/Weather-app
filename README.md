@@ -30,6 +30,6 @@ A production-style weather web app built with **Next.js**, **Tailwind CSS**, and
 ## 🚀 Getting Started
 
 ```bash
-WEATHER_API_KEY=bcb468bde47777cc0a71300f4adc2adf
+WEATHER_API_KEY=your_openweathermap_api_key
 npm install
 npm run dev
