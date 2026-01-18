@@ -156,14 +156,12 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3">
             {/* temperature icon */}
-            <span className="text-gray-400">
+          
               <img
                 src="/icon.png"
                 alt="Temperature Icon"
                 className="w-7 h-7"
               />
-            </span>
-
             {/* toggle pill */}
             <div className="flex rounded-full bg-gray-800 p-1">
               <button
