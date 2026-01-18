@@ -150,7 +150,7 @@ export default function Home() {
               className="w-5 h-5"
             />
             <span className="header-title">
-              Weather App v2
+              Weather App
             </span>
 
           </div>
