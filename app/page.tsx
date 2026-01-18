@@ -158,7 +158,7 @@ export default function Home() {
             {/* temperature icon */}
             <span className="text-gray-400">
               <img
-                src="/Icon.png"
+                src="/icon.png"
                 alt="Temperature Icon"
                 className="w-7 h-7"
               />
