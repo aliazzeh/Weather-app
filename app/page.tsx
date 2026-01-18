@@ -21,6 +21,33 @@ type ForecastDay = {
   condition: string;
   icon: string;
 };
+// Use custom icons for clear / clouds / rain, and fall back to OpenWeather icons for others
+const getTableIconSrc = (iconCode?: string | null, condition?: string | null) => {
+  const code = iconCode ?? "";
+  const desc = (condition ?? "").toLowerCase();
+
+  // Our three custom icons:
+  if (desc.includes("rain") || desc.includes("shower")) {
+    return "/weather-icons/rainy.png";
+  }
+
+  if (desc.includes("cloud")) {
+    return "/weather-icons/partly-cloudy.png";
+  }
+
+  if (desc.includes("clear") || desc.includes("sun")) {
+    return "/weather-icons/sunny.png";
+  }
+
+  // For everything else (snow, fog, storm, etc), use OpenWeather's own icon
+  if (code) {
+    return `https://openweathermap.org/img/wn/${code}.png`;
+  }
+
+  // No icon at all
+  return null;
+};
+
 
 export default function Home() {
   const [city, setCity] = useState("");
@@ -112,28 +139,29 @@ export default function Home() {
       : "–";
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
+    <main className="min-h-screen bg-[#0F1417] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-5xl rounded-3xl border border-gray-800 bg-gray-900/50 px-8 py-8 shadow-lg space-y-8">
         {/* Top title */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-lg font-medium text-white">
-            <span className="inline-block h-2 w-2 rounded-sm bg-sky-400" />
-            <span>Weather App</span>
+            <img
+              src="/Headerlogo.png"
+              alt="Weather App Logo"
+              className="w-5 h-5"
+            />
+            <span className="header-title">
+              Weather App
+            </span>
+
           </div>
           <div className="flex items-center gap-3">
             {/* temperature icon */}
             <span className="text-gray-400">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-gray-400"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M14 14.76V5a2 2 0 10-4 0v9.76a4 4 0 104 0z" />
-              </svg>
-
+              <img
+                src="/Icon.png"
+                alt="Temperature Icon"
+                className="w-7 h-7"
+              />
             </span>
 
             {/* toggle pill */}
@@ -186,7 +214,7 @@ export default function Home() {
                 <input
                   type="text"
                   placeholder="Search for a city"
-                  className="w-full rounded-full border border-gray-700 bg-gray-900 pl-11 pr-28 py-3 text-base text-white placeholder-gray-500 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  className="search-input w-full rounded-full border border-gray-700 bg-[#26303B] pl-11 pr-28 py-3 text-base text-white placeholder-gray-500 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                 />
@@ -215,7 +243,7 @@ export default function Home() {
         {/* Current weather section */}
         <section className="flex flex-col items-center text-center gap-6">
           <div className="space-y-2">
-            <h1 className="text-5xl font-semibold tracking-tight text-white">
+            <h1 className="city-title text-white">
               {displayCity}
             </h1>
           </div>
@@ -244,7 +272,7 @@ export default function Home() {
               <p className="text-4xl font-semibold text-white">
                 {displayTemp}
               </p>
-              <p className="mt-1 text-base text-gray-300 capitalize">
+              <p className="city-description text-white">
                 {displayDescription}
               </p>
             </div>
@@ -253,8 +281,8 @@ export default function Home() {
 
         {/* Small info cards */}
         <section className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-3xl border border-gray-700/70 bg-gray-900 p-6 text-left">
-            <p className="text-sm  tracking-wide text-gray-400">
+          <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
+            <p className="typography-medium2 text-gray-300">
               Humidity
             </p>
             <p className="mt-3 text-4xl font-semibold text-white">
@@ -263,8 +291,8 @@ export default function Home() {
             <p className="mt-2 text-xs text-gray-400">Cloud</p>
           </div>
 
-          <div className="rounded-3xl border border-gray-700/70 bg-gray-900 p-6 text-left">
-            <p className="text-sm  tracking-wide text-gray-400">
+          <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
+            <p className="typography-medium2 text-gray-300">
               Wind
             </p>
             <p className="mt-3 text-4xl font-semibold text-white">
@@ -273,8 +301,8 @@ export default function Home() {
             <p className="mt-2 text-xs text-gray-400">Wind</p>
           </div>
 
-          <div className="rounded-3xl border border-gray-700/70 bg-gray-900 p-6 text-left">
-            <p className="text-sm  tracking-wide text-gray-400">
+          <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
+            <p className="typography-medium2 text-gray-300">
               Feels like
             </p>
             <p className="mt-3 text-4xl font-semibold text-white">
@@ -286,14 +314,14 @@ export default function Home() {
 
         {/* 5-Day Forecast */}
         <section className="mt-12">
-          <h2 className="mb-4 text-2xl font-semibold tracking-wide text-white">
+          <h2 className="typography-medium text-gray-300">
             5-Day Forecast
           </h2>
 
-          <div className="rounded-2xl border border-gray-700/60 bg-gray-900 overflow-hidden">
+          <div className="rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
             <table className="min-w-full text-base border-collapse">
-              <thead style={{ backgroundColor: '#303030b5' }}>
-                <tr className="border-b border-gray-700">
+              <thead className="typography-medium">
+                <tr className="border-b border-gray-700 bg-[#1C2129]">
                   <th className="py-4 pl-6 pr-4 text-left font-medium text-white">
                     Day
                   </th>
@@ -303,6 +331,9 @@ export default function Home() {
                   <th className="py-4 pr-6 pl-4 text-left font-medium text-white">
                     Condition
                   </th>
+                  <th >
+
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -310,45 +341,56 @@ export default function Home() {
                   <tr
                     key={item.date}
                     className={
-                      index !== forecast.length - 1
-                        ? "border-b border-gray-700"
-                        : ""
+                      index !== forecast.length - 1 ? "border-b border-gray-700" : ""
                     }
                   >
-                    <td className="py-4 pl-6 pr-4 text-white font-normal">
+                    {/* Day */}
+                    <td className="typography-medium">
                       {item.dayName}
                     </td>
-                    <td className="px-4 py-4 text-white font-normal">
-                      {item.high !== null && item.low !== null
+
+                    {/* Temp (using high only, converted to C/F) */}
+                    <td className="typography-medium">
+                      {item.high !== null
                         ? unit === "C"
-                          ? `${Math.round(item.high)}°C / ${Math.round(item.low)}°C`
-                          : `${Math.round((item.high * 9) / 5 + 32)}°F / ${Math.round(
-                            (item.low * 9) / 5 + 32
-                          )}°F`
+                          ? `${Math.round(item.high)}°C`
+                          : `${Math.round((item.high * 9) / 5 + 32)}°F`
                         : "–"}
                     </td>
-                    <td className="py-4 pr-6 pl-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400 capitalize">
-                          {item.condition || "—"}
-                        </span>
-                        <span className="text-4xl">
-                          {item.icon === "01d" || item.icon === "01n" ? "☀️" :
-                            item.icon?.includes("02") ? "⛅️" :
-                              item.icon?.includes("03") || item.icon?.includes("04") ? "☁️" :
-                                item.icon?.includes("09") || item.icon?.includes("10") ? "🌧️" :
-                                  item.icon?.includes("11") ? "⛈️" :
-                                    item.icon?.includes("13") ? "❄️" :
-                                      item.icon?.includes("50") ? "🌫️" : "☀️"}
-                        </span>
-                      </div>
+
+                    {/* Condition text */}
+                    <td className="typography-medium">
+                      <span className="text-gray-300 capitalize">
+                        {item.condition || "—"}
+                      </span>
                     </td>
+
+                    <td className="py-4 pr-6 pl-4 text-center">
+                      {(() => {
+                        const iconSrc = getTableIconSrc(item.icon, item.condition);
+
+                        if (!iconSrc) {
+                          return <span className="text-gray-500">—</span>;
+                        }
+
+                        return (
+                          <img
+                            src={iconSrc}
+                            alt={item.condition || "weather icon"}
+                            className="inline-block h-10 w-10"
+                          />
+                        );
+                      })()}
+                    </td>
+
+
+
                   </tr>
                 ))}
                 {forecast.length === 0 && (
                   <tr>
                     <td
-                      colSpan={3}
+                      colSpan={4}
                       className="py-4 pl-6 pr-6 text-sm text-gray-500"
                     >
                       Search for a city to see the 5-day forecast.
