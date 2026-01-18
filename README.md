@@ -36,8 +36,11 @@ A production-style weather web app built with **Next.js**, **Tailwind CSS**, and
 - Write unit tests for the API routes and key UI components.
 - Add better accessibility (ARIA labels and keyboard navigation).
 
-## 🚀 Getting Started
+## Live Demo
+- https://weather-app-eta-six-12.vercel.app/
 
+
+## 🚀 Getting Started
 ```bash
 WEATHER_API_KEY=your_openweathermap_api_key
 npm install
