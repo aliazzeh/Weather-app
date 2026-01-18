@@ -27,6 +27,15 @@ A production-style weather web app built with **Next.js**, **Tailwind CSS**, and
 - OpenWeatherMap API
 - Git & GitHub
 
+## Notes (What we’d improve with more time)
+
+- Add “Use my location” button using the Geolocation API.
+- Improve the 5-day forecast UI with more detailed data (precipitation, min/        max, sunrise/sunset).
+- Add loading skeletons and small motion/animations for a smoother UX.
+- Support multiple languages and units (mph, km/h, etc.).
+- Write unit tests for the API routes and key UI components.
+- Add better accessibility (ARIA labels and keyboard navigation).
+
 ## 🚀 Getting Started
 
 ```bash
