@@ -5,10 +5,12 @@ const API_BASE = "https://api.openweathermap.org/data/2.5/forecast";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const city = searchParams.get("city");
+  const lat = searchParams.get("lat");
+  const lon = searchParams.get("lon");
 
-  if (!city) {
+  if (!city && (!lat || !lon)) {
     return NextResponse.json(
-      { error: "City query parameter is required, e.g. ?city=Amman" },
+      { error: "Either city query parameter or lat/lon coordinates are required" },
       { status: 400 }
     );
   }
@@ -23,9 +25,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const url = `${API_BASE}?q=${encodeURIComponent(
-      city
-    )}&appid=${apiKey}&units=metric`;
+    let url: string;
+    if (lat && lon) {
+      // Use coordinates
+      url = `${API_BASE}?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+    } else {
+      // Use city name
+      url = `${API_BASE}?q=${encodeURIComponent(
+        city!
+      )}&appid=${apiKey}&units=metric`;
+    }
 
     const res = await fetch(url);
 

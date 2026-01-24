@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 type WeatherData = {
   city: string;
@@ -49,6 +49,9 @@ const getTableIconSrc = (iconCode?: string | null, condition?: string | null) =>
 };
 
 
+const STORAGE_KEY = "weather-app-recent-searches";
+const MAX_RECENT_SEARCHES = 10;
+
 export default function Home() {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -56,6 +59,64 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [unit, setUnit] = useState<"C" | "F">("C");
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const searches = JSON.parse(stored);
+        setRecentSearches(Array.isArray(searches) ? searches : []);
+      }
+    } catch (err) {
+      console.error("Failed to load recent searches:", err);
+    }
+  }, []);
+
+  // Save recent search to localStorage
+  const saveRecentSearch = (searchTerm: string) => {
+    if (!searchTerm.trim()) return;
+
+    const normalizedTerm = searchTerm.trim();
+    setRecentSearches((prev) => {
+      // Remove duplicates and add to beginning
+      const filtered = prev.filter((item) => item.toLowerCase() !== normalizedTerm.toLowerCase());
+      const updated = [normalizedTerm, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (err) {
+        console.error("Failed to save recent searches:", err);
+      }
+      
+      return updated;
+    });
+  };
+
+  // Handle clicking outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowRecentSearches(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +148,9 @@ export default function Home() {
       const weatherData: WeatherData = await res.json();
       setWeather(weatherData);
 
+      // Save successful search to recent searches
+      saveRecentSearch(city.trim());
+
       // 2) 5-day forecast
       const forecastRes = await fetch(
         `/api/forecast?city=${encodeURIComponent(city)}`
@@ -103,7 +167,117 @@ export default function Home() {
       setError("Unexpected error fetching weather.");
     } finally {
       setLoading(false);
+      setShowRecentSearches(false);
     }
+  };
+
+  const handleRecentSearchClick = (searchTerm: string) => {
+    setCity(searchTerm);
+    setShowRecentSearches(false);
+    // Trigger search
+    const form = searchInputRef.current?.closest("form");
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+
+  const handleClearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {
+      console.error("Failed to clear recent searches:", err);
+    }
+  };
+
+  // Fetch weather by coordinates
+  const fetchWeatherByCoordinates = async (lat: number, lon: number) => {
+    setLoading(true);
+    setError("");
+    setWeather(null);
+    setForecast([]);
+
+    try {
+      // 1) current weather
+      const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError("Could not fetch weather data for your location. Please try again.");
+        return;
+      }
+
+      const weatherData: WeatherData = await res.json();
+      setWeather(weatherData);
+
+      // Save successful search to recent searches
+      if (weatherData.city) {
+        saveRecentSearch(weatherData.city);
+        setCity(weatherData.city);
+      }
+
+      // 2) 5-day forecast
+      const forecastRes = await fetch(`/api/forecast?lat=${lat}&lon=${lon}`);
+
+      if (forecastRes.ok) {
+        const forecastData: ForecastDay[] = await forecastRes.json();
+        setForecast(forecastData);
+      } else {
+        setForecast([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Unexpected error fetching weather.");
+    } finally {
+      setLoading(false);
+      setLocationLoading(false);
+      setShowRecentSearches(false);
+    }
+  };
+
+  // Get user's location and fetch weather
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setLocationLoading(true);
+    setError("");
+    setShowRecentSearches(false);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetchWeatherByCoordinates(latitude, longitude);
+      },
+      (error) => {
+        setLocationLoading(false);
+        let errorMessage = "Unable to get your location. ";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += "Please allow location access and try again.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += "Location information is unavailable.";
+            break;
+          case error.TIMEOUT:
+            errorMessage += "Location request timed out. Please try again.";
+            break;
+          default:
+            errorMessage += "An unknown error occurred.";
+            break;
+        }
+        
+        setError(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   };
 
   const displayCity =
@@ -210,12 +384,59 @@ export default function Home() {
 
                 {/* input */}
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search for a city"
                   className="search-input w-full rounded-full border border-gray-700 bg-[#26303B] pl-11 pr-28 py-3 text-base text-white placeholder-gray-500 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
+                  onFocus={() => setShowRecentSearches(recentSearches.length > 0)}
                 />
+
+                {/* Recent Searches Dropdown */}
+                {showRecentSearches && recentSearches.length > 0 && (
+                  <div
+                    ref={dropdownRef}
+                    className="absolute z-50 mt-2 w-full rounded-2xl border border-gray-700 bg-[#26303B] shadow-lg overflow-hidden"
+                  >
+                    <div className="px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-400">Recent Searches</span>
+                      <button
+                        type="button"
+                        onClick={handleClearRecentSearches}
+                        className="text-xs text-gray-500 hover:text-gray-300 transition"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {recentSearches.map((search, index) => (
+                        <button
+                          key={`${search}-${index}`}
+                          type="button"
+                          onClick={() => handleRecentSearchClick(search)}
+                          className="w-full px-4 py-3 text-left text-base text-white hover:bg-gray-800/50 transition flex items-center gap-3"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            className="w-4 h-4 text-gray-400"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <span>{search}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* button inside the same pill, on the right */}
                 <button
@@ -234,6 +455,65 @@ export default function Home() {
                 {error}
               </div>
             )}
+
+            {/* Use my location button */}
+            <div className="mt-4 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleUseLocation}
+                disabled={locationLoading || loading}
+                className="flex items-center gap-2 rounded-full border border-gray-700 bg-[#26303B] px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-800/50 active:scale-[.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {locationLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Getting location...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth="2"
+                      stroke="currentColor"
+                      className="w-4 h-4"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                      />
+                    </svg>
+                    <span>Use my location</span>
+                  </>
+                )}
+              </button>
+            </div>
 
           </div>
         </section>

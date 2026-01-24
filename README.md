@@ -1,40 +1,50 @@
 # Weather App – Next.js + Tailwind
 
-A production-style weather web app built with **Next.js**, **Tailwind CSS**, and **OpenWeatherMap** as part of an internship assignment.
+A production-style weather web application built with **Next.js**, **Tailwind CSS**, and the **OpenWeatherMap API** as part of an internship assignment.
 
 ## 🌤 Features
 
-- Search for any city worldwide
-- Real-time current weather
-- 5-day dynamic forecast
-- °C / °F unit toggle
-- Error & loading states
-- Responsive UI (desktop + mobile)
-- Figma-inspired styling & polish
-
-##Bonus
--°C ↔ °F unit toggle
--Error UX (city not found, invalid input, network issues)
--OpenWeather icon integration for forecast
--Clean commit history + conventional commit messages
--GitHub-ready project structur
+- Search for any city worldwide  
+- Real-time current weather data  
+- 5-day dynamic weather forecast  
+- °C / °F unit toggle  
+- **Use My Location** (Geolocation API)  
+- **Recent Searches** saved using localStorage  
+- Error & loading states  
+- Fully responsive UI (mobile, tablet, desktop)  
+- Figma-inspired styling and UI polish  
 
 ## 🛠 Tech Stack
 
-- Next.js (App Router)
-- React + TypeScript
-- Tailwind CSS
-- OpenWeatherMap API
-- Git & GitHub
+- Next.js (App Router)  
+- React + TypeScript  
+- Tailwind CSS  
+- OpenWeatherMap API  
+- Browser APIs:
+  - Geolocation API
+  - localStorage  
+- Git & GitHub  
 
-## Notes (What we’d improve with more time)
+## 📌 Notes / Future Improvements
 
-- Add “Use my location” button using the Geolocation API.
-- Improve the 5-day forecast UI with more detailed data (precipitation, min/        max, sunrise/sunset).
-- Add loading skeletons and small motion/animations for a smoother UX.
-- Support multiple languages and units (mph, km/h, etc.).
-- Write unit tests for the API routes and key UI components.
-- Add better accessibility (ARIA labels and keyboard navigation).
+- Enhance the 5-day forecast with:
+  - Min / Max temperatures  
+  - Precipitation details  
+  - Sunrise & sunset times  
+- Add loading skeletons and subtle animations for better UX  
+- Support multiple languages and additional units (mph, km/h)  
+- Improve accessibility (ARIA labels, keyboard navigation)  
+- Add unit and integration tests for API routes and UI components  
+
+## 🌍 Live Demo
+
+https://weather-app-eta-six-12.vercel.app/
+
+## 🚀 Getting Started
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/your-repo-name.git
 
 ## Live Demo
 - https://weather-app-eta-six-12.vercel.app/
