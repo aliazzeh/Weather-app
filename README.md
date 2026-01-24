@@ -40,7 +40,7 @@ A production-style weather web application built with **Next.js**, **Tailwind CS
 
 https://weather-app-eta-six-12.vercel.app/
 
-## 🚀 Getting Started
+
 
 
 ## Live Demo
