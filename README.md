@@ -36,11 +36,6 @@ A production-style weather web application built with **Next.js**, **Tailwind CS
 - Improve accessibility (ARIA labels, keyboard navigation)  
 - Add unit and integration tests for API routes and UI components  
 
-## 🌍 Live Demo
-
-https://weather-app-eta-six-12.vercel.app/
-
-
 
 
 ## Live Demo
