@@ -42,9 +42,6 @@ https://weather-app-eta-six-12.vercel.app/
 
 ## 🚀 Getting Started
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/your-repo-name.git
 
 ## Live Demo
 - https://weather-app-eta-six-12.vercel.app/
