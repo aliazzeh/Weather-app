@@ -313,8 +313,10 @@ export default function Home() {
       : "–";
 
   return (
-    <main className="min-h-screen bg-[#0F1417] text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl rounded-3xl border border-gray-800 bg-gray-900/50 px-8 py-8 shadow-lg space-y-8">
+    <main className="min-h-screen bg-[#0F1417] text-white flex items-center justify-center px-3 py-5 sm:px-6 sm:py-8">
+  <div className="w-full max-w-[960px] rounded-3xl border border-gray-800 bg-gray-900/50 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 shadow-lg space-y-6 sm:space-y-8">
+
+
         {/* Top title */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-lg font-medium text-white">
@@ -341,7 +343,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setUnit("C")}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${unit === "C" ? "bg-sky-500 text-white" : "text-gray-400"
+                className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer ${unit === "C" ? "bg-sky-500 text-white" : "text-gray-400"
                   }`}
               >
                 °C
@@ -349,7 +351,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setUnit("F")}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${unit === "F" ? "bg-sky-500 text-white" : "text-gray-400"
+                className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer ${unit === "F" ? "bg-sky-500 text-white" : "text-gray-400"
                   }`}
               >
                 °F
@@ -440,8 +442,9 @@ export default function Home() {
 
                 {/* button inside the same pill, on the right */}
                 <button
+                  
                   type="submit"
-                  className="mr-[-14px] absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 backdrop-blur px-9 py-3 text-base font-semibold text-white shadow hover:bg-white/20 active:scale-[.98] transition disabled:opacity-60"
+                  className="mr-[-14px] absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 backdrop-blur px-9 py-3 text-base font-semibold text-white shadow hover:bg-white/20 active:scale-[.98] transition disabled:opacity-60 cursor-pointer"
                   disabled={loading}
                 >
                   {loading ? "Loading..." : "Search"}
@@ -462,7 +465,10 @@ export default function Home() {
                 type="button"
                 onClick={handleUseLocation}
                 disabled={locationLoading || loading}
-                className="flex items-center gap-2 rounded-full border border-gray-700 bg-[#26303B] px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-800/50 active:scale-[.98] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-full border border-gray-700 
+             bg-[#26303B] px-6 py-2.5 text-sm font-medium text-white 
+             hover:bg-gray-800/50 active:scale-[.98] transition 
+             cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {locationLoading ? (
                   <>
@@ -527,7 +533,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-5">
-            <span className="text-6xl">
+            <span className="text-4xl sm:text-5xl">
               {weather?.icon === "01d" || weather?.icon === "01n"
                 ? "☀️"
                 : weather?.icon?.includes("02")
@@ -547,7 +553,7 @@ export default function Home() {
                             : "☀️"}
             </span>
             <div className="flex flex-col items-start">
-              <p className="text-4xl font-semibold text-white">
+              <p className="text-3xl sm:text-4xl font-semibold text-white">
                 {displayTemp}
               </p>
               <p className="city-description text-white">
@@ -563,7 +569,7 @@ export default function Home() {
             <p className="typography-medium2 text-gray-300">
               Humidity
             </p>
-            <p className="mt-3 text-4xl font-semibold text-white">
+            <p className="mt-3 text-2xl sm:text-3xl font-semibold text-white">
               {displayHumidity}
             </p>
             <p className="mt-2 text-xs text-gray-400">Cloud</p>
@@ -597,16 +603,16 @@ export default function Home() {
           </h2>
 
           <div className="rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
-            <table className="min-w-full text-base border-collapse">
+            <table className="min-w-full text-sm sm:text-base border-collapse">
               <thead className="typography-medium">
                 <tr className="border-b border-gray-700 bg-[#1C2129]">
-                  <th className="py-4 pl-6 pr-4 text-left font-medium text-white">
+                  <th className="py-3 sm:py-4 pl-6 pr-4 text-left font-medium text-white">
                     Day
                   </th>
-                  <th className="px-4 py-4 text-left font-medium text-white">
+                  <th className="px-4 py-3 sm:py-4 text-left font-medium text-white">
                     High / Low
                   </th>
-                  <th className="py-4 pr-6 pl-4 text-left font-medium text-white">
+                  <th className="py-3 sm:py-4 pr-6 pl-4 text-left font-medium text-white">
                     Condition
                   </th>
                   <th >
