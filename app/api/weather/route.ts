@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 const API_BASE = "https://api.openweathermap.org/data/2.5/weather";
+import countries from "world-countries";
+
+const countryNameByCca2: Record<string, string> = Object.fromEntries(
+  (countries as any[]).map((c) => [c.cca2, c.name?.common ?? c.cca2])
+);
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -52,9 +57,11 @@ export async function GET(request: Request) {
     const data = await res.json();
 
     // Pick only what we need
+    const countryCode = data.sys?.country ?? "";
     const mapped = {
       city: data.name,
-      country: data.sys?.country ?? "",
+      country: countryCode, // keep code if you want
+      countryName: countryNameByCca2[countryCode] ?? countryCode, // ✅ add this
       temp: data.main?.temp ?? null,
       feelsLike: data.main?.feels_like ?? null,
       humidity: data.main?.humidity ?? null,

@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import EmptyState from "./components/EmptyState";
 
 type WeatherData = {
   city: string;
   country: string;
+  countryName?: string;
   temp: number | null;
   feelsLike: number | null;
   humidity: number | null;
@@ -21,36 +23,58 @@ type ForecastDay = {
   condition: string;
   icon: string;
 };
+type GeoSuggestion = {
+  name: string;
+  state: string;
+  countryCode: string;
+  countryName: string;
+  lat: number;
+  lon: number;
+  label: string;
+};
+
 // Use custom icons for clear / clouds / rain, and fall back to OpenWeather icons for others
 const getTableIconSrc = (iconCode?: string | null, condition?: string | null) => {
   const code = iconCode ?? "";
   const desc = (condition ?? "").toLowerCase();
 
-  // Our three custom icons:
-  if (desc.includes("rain") || desc.includes("shower")) {
+  if (desc.includes("rain") || desc.includes("shower")) return "/weather-icons/rainy.png";
+  if (desc.includes("cloud")) return "/weather-icons/partly-cloudy.png";
+  if (desc.includes("clear") || desc.includes("sun")) return "/weather-icons/sunny.png";
+
+  if (code) return `https://openweathermap.org/img/wn/${code}.png`;
+  return null;
+};
+const  getHeroIconSrc = (iconCode?: string | null, description?: string | null) => {
+  const code = iconCode ?? "";
+  const desc = (description ?? "").toLowerCase();
+
+  // Prefer our custom icons (match your assets)
+  if (desc.includes("rain") || desc.includes("shower") || code.includes("09") || code.includes("10")) {
     return "/weather-icons/rainy.png";
   }
 
-  if (desc.includes("cloud")) {
+  if (desc.includes("cloud") || code.includes("02") || code.includes("03") || code.includes("04")) {
     return "/weather-icons/partly-cloudy.png";
   }
 
-  if (desc.includes("clear") || desc.includes("sun")) {
+  if (desc.includes("clear") || desc.includes("sun") || code === "01d" || code === "01n") {
     return "/weather-icons/sunny.png";
   }
 
-  // For everything else (snow, fog, storm, etc), use OpenWeather's own icon
+  // Fallback: OpenWeather icon if available
   if (code) {
-    return `https://openweathermap.org/img/wn/${code}.png`;
+    return `https://openweathermap.org/img/wn/${code}@2x.png`;
   }
 
-  // No icon at all
-  return null;
+  return "/weather-icons/sunny.png";
 };
-
 
 const STORAGE_KEY = "weather-app-recent-searches";
 const MAX_RECENT_SEARCHES = 10;
+
+const LOCATION_PROMPT_KEY = "weather-app-location-prompt-choice";
+// values: "allow" | "deny"
 
 export default function Home() {
   const [city, setCity] = useState("");
@@ -61,11 +85,20 @@ export default function Home() {
   const [unit, setUnit] = useState<"C" | "F">("C");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestLoading, setSuggestLoading] = useState(false);  
+  const suggestBoxRef = useRef<HTMLDivElement>(null);
+  const suggestAbortRef = useRef<AbortController | null>(null);
+  const isTyping = city.trim().length >= 2;
+  const isSelectingRef = useRef(false);
 
-  // Load recent searches from localStorage on mount
+  // ----------------------------
+  // Recent searches: load
+  // ----------------------------
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -78,62 +111,131 @@ export default function Home() {
     }
   }, []);
 
-  // Save recent search to localStorage
+  // Recent searches: save helper
   const saveRecentSearch = (searchTerm: string) => {
-    if (!searchTerm.trim()) return;
-
     const normalizedTerm = searchTerm.trim();
+    if (!normalizedTerm) return;
+
     setRecentSearches((prev) => {
-      // Remove duplicates and add to beginning
-      const filtered = prev.filter((item) => item.toLowerCase() !== normalizedTerm.toLowerCase());
+      const filtered = prev.filter(
+        (item) => item.toLowerCase() !== normalizedTerm.toLowerCase()
+      );
       const updated = [normalizedTerm, ...filtered].slice(0, MAX_RECENT_SEARCHES);
-      
-      // Save to localStorage
+
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       } catch (err) {
         console.error("Failed to save recent searches:", err);
       }
-      
+
       return updated;
     });
   };
 
-  // Handle clicking outside to close dropdown
+  const handleClearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {
+      console.error("Failed to clear recent searches:", err);
+    }
+  };
+
+        // Close dropdowns on outside click
+      useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+          const target = event.target as Node;
+
+          if (
+            !searchInputRef.current?.contains(target) &&
+            !dropdownRef.current?.contains(target) &&
+            !suggestBoxRef.current?.contains(target)
+          ) {
+            setShowRecentSearches(false);
+            setShowSuggestions(false);
+          }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+      }, []);
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        searchInputRef.current &&
-        !searchInputRef.current.contains(event.target as Node)
-      ) {
-        setShowRecentSearches(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!city.trim()) {
-      setError("Please enter a city name.");
+    const q = city.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
-
-    setLoading(true);
-    setError("");
+  
+    const t = window.setTimeout(async () => {
+      try {
+        suggestAbortRef.current?.abort();
+        const controller = new AbortController();
+        suggestAbortRef.current = controller;
+  
+        setSuggestLoading(true);
+  
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}&limit=7`, {
+          signal: controller.signal,
+        });
+  
+        if (!res.ok) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          return;
+        }
+  
+        const data = await res.json();
+        const results: GeoSuggestion[] = Array.isArray(data?.results) ? data.results : [];
+  
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch (e: any) {
+        if (e?.name !== "AbortError") {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } finally {
+        setSuggestLoading(false);
+      }
+    }, 300);
+  
+    return () => window.clearTimeout(t);
+  }, [city]);
+  const handleSuggestionPick = (s: GeoSuggestion) => {
+    // ✅ سكّر كل القوائم فورًا
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setShowRecentSearches(false);
+  
+    // ✅ اقطع أي طلب suggestions شغال
+    suggestAbortRef.current?.abort();
+  
+    // ✅ نفّذ البحث بالإحداثيات (الدقة الأعلى)
+    fetchByCoordinates(s.lat, s.lon);
+  
+    // ✅ امسح الـ input حتى ما ترجع الاقتراحات تظهر
+    setCity("");
+  };
+  
+  
+    
+  // ----------------------------
+  // Fetch helpers
+  // ----------------------------
+  const resetResults = () => {
     setWeather(null);
     setForecast([]);
+  };
+
+  const fetchByCity = async (cityName: string) => {
+    setLoading(true);
+    setError("");
+    resetResults();
 
     try {
-      // 1) current weather
-      const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+      const res = await fetch(`/api/weather?city=${encodeURIComponent(cityName)}`);
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -148,19 +250,12 @@ export default function Home() {
       const weatherData: WeatherData = await res.json();
       setWeather(weatherData);
 
-      // Save successful search to recent searches
-      saveRecentSearch(city.trim());
+      saveRecentSearch(cityName.trim());
 
-      // 2) 5-day forecast
-      const forecastRes = await fetch(
-        `/api/forecast?city=${encodeURIComponent(city)}`
-      );
-
+      const forecastRes = await fetch(`/api/forecast?city=${encodeURIComponent(cityName)}`);
       if (forecastRes.ok) {
         const forecastData: ForecastDay[] = await forecastRes.json();
         setForecast(forecastData);
-      } else {
-        setForecast([]);
       }
     } catch (err) {
       console.error(err);
@@ -171,38 +266,15 @@ export default function Home() {
     }
   };
 
-  const handleRecentSearchClick = (searchTerm: string) => {
-    setCity(searchTerm);
-    setShowRecentSearches(false);
-    // Trigger search
-    const form = searchInputRef.current?.closest("form");
-    if (form) {
-      form.requestSubmit();
-    }
-  };
-
-  const handleClearRecentSearches = () => {
-    setRecentSearches([]);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (err) {
-      console.error("Failed to clear recent searches:", err);
-    }
-  };
-
-  // Fetch weather by coordinates
-  const fetchWeatherByCoordinates = async (lat: number, lon: number) => {
+  const fetchByCoordinates = async (lat: number, lon: number) => {
     setLoading(true);
     setError("");
-    setWeather(null);
-    setForecast([]);
+    resetResults();
 
     try {
-      // 1) current weather
       const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
 
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
         setError("Could not fetch weather data for your location. Please try again.");
         return;
       }
@@ -210,83 +282,150 @@ export default function Home() {
       const weatherData: WeatherData = await res.json();
       setWeather(weatherData);
 
-      // Save successful search to recent searches
       if (weatherData.city) {
+        // setCity(weatherData.city);
         saveRecentSearch(weatherData.city);
-        setCity(weatherData.city);
       }
 
-      // 2) 5-day forecast
       const forecastRes = await fetch(`/api/forecast?lat=${lat}&lon=${lon}`);
-
       if (forecastRes.ok) {
         const forecastData: ForecastDay[] = await forecastRes.json();
         setForecast(forecastData);
-      } else {
-        setForecast([]);
       }
     } catch (err) {
       console.error(err);
       setError("Unexpected error fetching weather.");
     } finally {
       setLoading(false);
-      setLocationLoading(false);
       setShowRecentSearches(false);
     }
   };
 
-  // Get user's location and fetch weather
-  const handleUseLocation = () => {
+  // ----------------------------
+  // Search handlers
+  // ----------------------------
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    const trimmed = city.trim();
+    if (!trimmed) {
+      setError("Please enter a city name.");
+      return;
+    }
+  
+    // ✅ سكّر كل dropdowns
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setShowRecentSearches(false);
+  
+    // (اختياري بس ممتاز)
+    suggestAbortRef.current?.abort();
+  
+    await fetchByCity(trimmed);
+  
+    // ✅ امسح الـ input بعد البحث
+    setCity("");
+  };
+  
+
+  const handleRecentSearchClick = (searchTerm: string) => {
+    setCity(searchTerm);
+    setShowRecentSearches(false);
+    fetchByCity(searchTerm); // ✅ مباشر
+  };
+
+  // ----------------------------
+  // Location prompt logic
+  // ----------------------------
+  useEffect(() => {
+    // On first mount: decide whether to show prompt / auto-fetch
+    try {
+      const saved = localStorage.getItem(LOCATION_PROMPT_KEY) as
+        | "allow"
+        | "deny"
+        | null;
+
+      if (saved === "allow") {
+        // Auto-try location on subsequent visits
+        if (!navigator.geolocation) {
+          setError("Geolocation is not supported by your browser. Please search for a city instead.");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => fetchByCoordinates(pos.coords.latitude, pos.coords.longitude),
+          (err) => {
+            if (err.code === err.PERMISSION_DENIED) {
+              setError("Location permission was denied. You can search for a city instead.");
+            } else {
+              setError("Unable to get your location. Please search for a city instead.");
+            }
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        return;
+      }
+
+      if (saved === "deny") {
+        // Do nothing → user sees EmptyState
+        return;
+      }
+
+      // No saved choice → show modal
+      setShowLocationPrompt(true);
+    } catch {
+      setShowLocationPrompt(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleLocationYes = () => {
+    setShowLocationPrompt(false);
+
+    try {
+      localStorage.setItem(LOCATION_PROMPT_KEY, "allow");
+    } catch { }
+
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser.");
+      setError("Geolocation is not supported by your browser. Please search for a city instead.");
       return;
     }
 
-    setLocationLoading(true);
     setError("");
-    setShowRecentSearches(false);
+    setLoading(true);
+    resetResults();
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        fetchWeatherByCoordinates(latitude, longitude);
-      },
-      (error) => {
-        setLocationLoading(false);
-        let errorMessage = "Unable to get your location. ";
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage += "Please allow location access and try again.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage += "Location information is unavailable.";
-            break;
-          case error.TIMEOUT:
-            errorMessage += "Location request timed out. Please try again.";
-            break;
-          default:
-            errorMessage += "An unknown error occurred.";
-            break;
+      (pos) => fetchByCoordinates(pos.coords.latitude, pos.coords.longitude),
+      (err) => {
+        setLoading(false);
+
+        try {
+          localStorage.setItem(LOCATION_PROMPT_KEY, "deny");
+        } catch { }
+
+        if (err.code === err.PERMISSION_DENIED) {
+          setError("Location permission was denied. You can search for a city instead.");
+        } else {
+          setError("Unable to get your location. Please search for a city instead.");
         }
-        
-        setError(errorMessage);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
-  const displayCity =
-    weather?.city && weather?.country
-      ? `${weather.city}, ${weather.country}`
-      : city || "Amman,Jordan";
+  const handleLocationNo = () => {
+    setShowLocationPrompt(false);
+    try {
+      localStorage.setItem(LOCATION_PROMPT_KEY, "deny");
+    } catch { }
+  };
 
-  const displayDescription =
-    weather?.description || "Mostly clear with a high of 75°F";
+  // ----------------------------
+  // Display values
+  // ----------------------------
+  const displayCity = weather?.city && weather?.countryName ? `${weather.city}, ${weather.countryName}` : "";
+  const displayDescription = weather?.description ?? "";
 
   const displayTemp =
     weather?.temp !== null && weather?.temp !== undefined
@@ -303,396 +442,440 @@ export default function Home() {
       : "–";
 
   const displayHumidity =
-    weather?.humidity !== null && weather?.humidity !== undefined
-      ? `${weather.humidity}%`
-      : "–";
+    weather?.humidity !== null && weather?.humidity !== undefined ? `${weather.humidity}%` : "–";
 
   const displayWind =
-    weather?.windSpeed !== null && weather?.windSpeed !== undefined
-      ? `${weather.windSpeed} m/s`
-      : "–";
+    weather?.windSpeed !== null && weather?.windSpeed !== undefined ? `${weather.windSpeed} m/s` : "–";
 
+  const isInitialView = !weather && !loading && !error && !showLocationPrompt;
+  const displayHeroDescription = useMemo(() => {
+    // If we have forecast high, use it (more like Figma)
+    const todayHigh = forecast?.[0]?.high;
+  
+    const highText =
+      todayHigh !== null && todayHigh !== undefined
+        ? unit === "C"
+          ? `${Math.round(todayHigh)}°C`
+          : `${Math.round((todayHigh * 9) / 5 + 32)}°F`
+        : unit === "C"
+        ? "—°C"
+        : "—°F";
+  
+    // Normalize condition text
+    const raw = (weather?.description ?? "").trim().toLowerCase();
+  
+    let phrase = "Mostly clear";
+    if (raw.includes("rain") || raw.includes("shower")) phrase = "Rainy";
+    else if (raw.includes("storm") || raw.includes("thunder")) phrase = "Stormy";
+    else if (raw.includes("snow")) phrase = "Snowy";
+    else if (raw.includes("fog") || raw.includes("mist") || raw.includes("haze")) phrase = "Foggy";
+    else if (raw.includes("cloud")) phrase = "Mostly cloudy";
+    else if (raw.includes("clear")) phrase = "Mostly clear";
+  
+    return `${phrase} with a high of ${highText}`;
+  }, [weather?.description, forecast, unit]);
+  
+  // ----------------------------
+  // UI
+  // ----------------------------
   return (
-    <main className="min-h-screen bg-[#0F1417] text-white flex items-center justify-center px-3 py-5 sm:px-6 sm:py-8">
-  <div className="w-full max-w-[960px] rounded-3xl border border-gray-800 bg-gray-900/50 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 shadow-lg space-y-6 sm:space-y-8">
-
-
-        {/* Top title */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-lg font-medium text-white">
+    <main className="min-h-screen bg-[#0F1417] text-white">
+      {/* Header full width */}
+      <header className="sticky top-0 z-50 w-full bg-[#0F1417]/90 backdrop-blur border-b border-[#E5E8EB33]">
+        <div className="h-12 px-10 py-3 flex items-center justify-between">
+          {/* Left: icon + title (gap 16px) */}
+          <div className="flex items-center gap-4">
             <img
               src="/Headerlogo.png"
               alt="Weather App Logo"
-              className="w-5 h-5"
+              className="w-4 h-4"
             />
-            <span className="header-title">
+            <span className="font-grotesk font-bold text-[18px] leading-[23px] tracking-[0px] text-white">
               Weather App
             </span>
-
           </div>
-          <div className="flex items-center gap-3">
-            {/* temperature icon */}
-          
-              <img
-                src="/icon.png"
-                alt="Temperature Icon"
-                className="w-7 h-7"
-              />
-            {/* toggle pill */}
-            <div className="flex rounded-full bg-gray-800 p-1">
+
+          {/* Right: toggle + icon (gap 16px) */}
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setUnit((prev) => (prev === "C" ? "F" : "C"))}
+              className="w-[27px] h-[23px] font-grotesk font-bold text-[18px] leading-[23px] tracking-[0px] text-white select-none"
+              aria-label="Toggle temperature unit"
+            >
+              {unit === "C" ? "°C" : "°F"}
+            </button>
+
+            <img
+              src="/icon.png"
+              alt="Temperature Icon"
+              className="w-[25px] h-[25px]"
+            />
+          </div>
+        </div>
+      </header>
+
+
+      {/* Location prompt modal */}
+      {showLocationPrompt && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/60" onClick={handleLocationNo} />
+
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#151A20] p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-white">Use your current location?</h3>
+            <p className="mt-2 text-sm text-gray-300">
+              We can show local weather automatically. You can change this later in your browser settings.
+            </p>
+
+            <div className="mt-5 flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => setUnit("C")}
-                className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer ${unit === "C" ? "bg-sky-500 text-white" : "text-gray-400"
-                  }`}
+                onClick={handleLocationNo}
+                className="rounded-full px-5 py-2 text-sm font-medium text-gray-300 hover:bg-white/5 transition"
               >
-                °C
+                Not now
               </button>
+
               <button
                 type="button"
-                onClick={() => setUnit("F")}
-                className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer ${unit === "F" ? "bg-sky-500 text-white" : "text-gray-400"
-                  }`}
+                onClick={handleLocationYes}
+                className="rounded-full bg-sky-500 px-5 py-2 text-sm font-semibold text-white hover:bg-sky-400 transition"
               >
-                °F
+                Use location
               </button>
             </div>
           </div>
+        </div>
+      )}
 
-        </header>
-        <hr style={{ border: '1px solid #3e3d3d' }}></hr>
-        {/* Search bar */}
-        <section>
-          <div>
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                {/* search icon on the left */}
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    className="w-5 h-5 text-gray-500"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"
-                    />
-                  </svg>
-                </span>
+      {/* Page content */}
+      <div className="w-full px-[160px] py-3">
+        <div className="w-full max-w-[960px] mx-auto flex flex-col">
+          <div className="w-full px-6 py-5">
+            <div className="mx-auto w-full max-w-[1440px] space-y-6 sm:space-y-8">
 
-                {/* input */}
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search for a city"
-                  className="search-input w-full rounded-full border border-gray-700 bg-[#26303B] pl-11 pr-28 py-3 text-base text-white placeholder-gray-500 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  onFocus={() => setShowRecentSearches(recentSearches.length > 0)}
-                />
 
-                {/* Recent Searches Dropdown */}
-                {showRecentSearches && recentSearches.length > 0 && (
-                  <div
-                    ref={dropdownRef}
-                    className="absolute z-50 mt-2 w-full rounded-2xl border border-gray-700 bg-[#26303B] shadow-lg overflow-hidden"
-                  >
-                    <div className="px-4 py-2 border-b border-gray-700 flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-400">Recent Searches</span>
-                      <button
-                        type="button"
-                        onClick={handleClearRecentSearches}
-                        className="text-xs text-gray-500 hover:text-gray-300 transition"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                    <div className="max-h-60 overflow-y-auto">
-                      {recentSearches.map((search, index) => (
-                        <button
-                          key={`${search}-${index}`}
-                          type="button"
-                          onClick={() => handleRecentSearchClick(search)}
-                          className="w-full px-4 py-3 text-left text-base text-white hover:bg-gray-800/50 transition flex items-center gap-3"
+              {/* Search Bar */}
+              <section className="w-full">
+                {/* Container 1 */}
+                <div className="w-full px-4 py-1">
+                  {/* Container 2 */}
+                  <form onSubmit={handleSearch}>
+                    <div className="flex h-12 w-full min-w-[160px] rounded-xl bg-[#26303B]">
+
+                      {/* Icon container */}
+                      <div className="flex h-12 w-10 min-w-[40px] items-center pl-4">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="1.8"
+                          stroke="currentColor"
+                          className="w-6 h-6 text-[#99ABBD]"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            className="w-4 h-4 text-gray-400"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth="2"
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"
+                          />
+                        </svg>
+                      </div>
+
+                      {/* Input */}
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={city}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setCity(v);
+                        
+                          if (v.trim().length >= 2) {
+                            setShowSuggestions(true);
+                            setShowRecentSearches(false);
+                          } else {
+                            setShowSuggestions(false);
+                            setShowRecentSearches(recentSearches.length > 0);
+                          }
+                        }}
+                        
+                        onFocus={() => {
+                          if (city.trim().length >= 2) {
+                            setShowSuggestions(true);
+                            setShowRecentSearches(false);
+                          } else {
+                            setShowRecentSearches(recentSearches.length > 0);
+                            setShowSuggestions(false);
+                          }
+                        }}
+                        
+                        placeholder="Search for a city"
+                        className="
+                      h-12 w-full bg-transparent
+                      py-2 pr-4 pl-2
+                      font-grotesk font-normal
+                      text-[16px] leading-[24px] tracking-[0px]
+                      text-white placeholder:text-[#99ABBD]
+                      outline-none
+                    "
+                      />
+                    </div>
+                    {/* Geo suggestions dropdown */}
+                    {/* Suggestions Dropdown */}
+                    {(showSuggestions || showRecentSearches) && (
+                  <div ref={suggestBoxRef} className="relative">
+                    <div className="absolute z-50 mt-2 w-full rounded-xl border border-gray-700 bg-[#26303B] shadow-lg overflow-hidden">
+                      
+                      {/* Header */}
+                      <div className="px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-400">
+                          {showSuggestions ? "Suggestions" : "Recent Searches"}
+                        </span>
+
+                        {!showSuggestions && recentSearches.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearRecentSearches}
+                            className="text-xs text-gray-500 hover:text-gray-300 transition"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          <span>{search}</span>
-                        </button>
-                      ))}
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Body */}
+                      <div className="max-h-72 overflow-y-auto">
+                        {/* Suggestions */}
+                        {showSuggestions && (
+                          <>
+                            {suggestLoading ? (
+                              <div className="px-4 py-3 text-sm text-[#99ABBD]">Searching…</div>
+                            ) : suggestions.length > 0 ? (
+                              suggestions.map((s, idx) => (
+                                <button
+                                  key={`${s.lat}-${s.lon}-${idx}`}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault(); // مهم: يمنع blur ويمنع تغيّر العناصر قبل الالتقاط
+                                    handleSuggestionPick(s);
+                                  }}
+                                  
+                                  className="w-full px-4 py-3 text-left text-base text-white hover:bg-gray-800/50 transition"
+                                >
+                                  {s.label}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-sm text-[#99ABBD]">No matches.</div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Recent searches */}
+                        {showRecentSearches && !showSuggestions && (
+                          <>
+                            {recentSearches.map((search, index) => (
+                              <button
+                                key={`${search}-${index}`}
+                                type="button"
+                                onClick={() => handleRecentSearchClick(search)}
+                                className="w-full px-4 py-3 text-left text-base text-white hover:bg-gray-800/50 transition flex items-center gap-3"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth="2"
+                                  stroke="currentColor"
+                                  className="w-4 h-4 text-gray-400"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <span>{search}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
+                )}                    
+              </form>
+              </div>
+              </section>
 
-                {/* button inside the same pill, on the right */}
-                <button
+
+              {/* Main content */}
+              {isInitialView ? (
+                <EmptyState />
+              ) : error ? (
+                <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-center text-red-200">
+                  {error}
+                </div>
+              ) : loading ? (
+                <div className="rounded-2xl border border-gray-700/60 bg-[#26303B] p-6 text-center text-gray-300">
+                  Loading weather data...
+                </div>
+              ) : weather ? (
+                <>
+                  {/* Current weather section */}
+                  {/* City Title */}
+                  <section className="w-full px-4 pt-0 pb-3">
+                    <h1
+                      className="
+                          w-full text-center
+                          font-grotesk font-bold
+                          text-[32px] leading-[40px]
+                          text-white
+                        "
+                    >
+                      {displayCity}
+                    </h1>
+                  </section>
                   
-                  type="submit"
-                  className="mr-[-14px] absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 backdrop-blur px-9 py-3 text-base font-semibold text-white shadow hover:bg-white/20 active:scale-[.98] transition disabled:opacity-60 cursor-pointer"
-                  disabled={loading}
-                >
-                  {loading ? "Loading..." : "Search"}
-                </button>
+                  {/* Weather description + icon */}
+              <section className="w-full px-4 pt-1 pb-3 mt-[-37px]">
+                <div className="h-[68px] flex items-center justify-center gap-[16px]">
+                  <img
+                    src={getHeroIconSrc(weather?.icon, weather?.description)}
+                    alt={weather?.description ? `${weather.description} icon` : "Weather icon"}
+                    className="w-[52px] h-[52px] rotate-180 shrink-0"
+                  />
 
-
-              </div>
-            </form>
-            {error && (
-              <div className="mt-3 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {error}
-              </div>
-            )}
-
-            {/* Use my location button */}
-            <div className="mt-4 flex items-center justify-center">
-              <button
-                type="button"
-                onClick={handleUseLocation}
-                disabled={locationLoading || loading}
-                className="flex items-center gap-2 rounded-full border border-gray-700 
-             bg-[#26303B] px-6 py-2.5 text-sm font-medium text-white 
-             hover:bg-gray-800/50 active:scale-[.98] transition 
-             cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {locationLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Getting location...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="2"
-                      stroke="currentColor"
-                      className="w-4 h-4"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-                      />
-                    </svg>
-                    <span>Use my location</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-          </div>
-        </section>
-
-        {/* Current weather section */}
-        <section className="flex flex-col items-center text-center gap-6">
-          <div className="space-y-2">
-            <h1 className="city-title text-white">
-              {displayCity}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-5">
-            <span className="text-4xl sm:text-5xl">
-              {weather?.icon === "01d" || weather?.icon === "01n"
-                ? "☀️"
-                : weather?.icon?.includes("02")
-                  ? "⛅️"
-                  : weather?.icon?.includes("03") ||
-                    weather?.icon?.includes("04")
-                    ? "☁️"
-                    : weather?.icon?.includes("09") ||
-                      weather?.icon?.includes("10")
-                      ? "🌧️"
-                      : weather?.icon?.includes("11")
-                        ? "⛈️"
-                        : weather?.icon?.includes("13")
-                          ? "❄️"
-                          : weather?.icon?.includes("50")
-                            ? "🌫️"
-                            : "☀️"}
-            </span>
-            <div className="flex flex-col items-start">
-              <p className="text-3xl sm:text-4xl font-semibold text-white">
-                {displayTemp}
-              </p>
-              <p className="city-description text-white">
-                {displayDescription}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Small info cards */}
-        <section className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
-            <p className="typography-medium2 text-gray-300">
-              Humidity
-            </p>
-            <p className="mt-3 text-2xl sm:text-3xl font-semibold text-white">
-              {displayHumidity}
-            </p>
-            <p className="mt-2 text-xs text-gray-400">Cloud</p>
-          </div>
-
-          <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
-            <p className="typography-medium2 text-gray-300">
-              Wind
-            </p>
-            <p className="mt-3 text-4xl font-semibold text-white">
-              {displayWind}
-            </p>
-            <p className="mt-2 text-xs text-gray-400">Wind</p>
-          </div>
-
-          <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
-            <p className="typography-medium2 text-gray-300">
-              Feels like
-            </p>
-            <p className="mt-3 text-4xl font-semibold text-white">
-              {displayFeelsLike}
-            </p>
-            <p className="mt-2 text-xs text-gray-400">Thermometer</p>
-          </div>
-        </section>
-
-        {/* 5-Day Forecast */}
-        <section className="mt-12">
-          <h2 className="typography-medium text-gray-300">
-            5-Day Forecast
-          </h2>
-
-          <div className="rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
-            <table className="min-w-full text-sm sm:text-base border-collapse">
-              <thead className="typography-medium">
-                <tr className="border-b border-gray-700 bg-[#1C2129]">
-                  <th className="py-3 sm:py-4 pl-6 pr-4 text-left font-medium text-white">
-                    Day
-                  </th>
-                  <th className="px-4 py-3 sm:py-4 text-left font-medium text-white">
-                    High / Low
-                  </th>
-                  <th className="py-3 sm:py-4 pr-6 pl-4 text-left font-medium text-white">
-                    Condition
-                  </th>
-                  <th >
-
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {forecast.map((item, index) => (
-                  <tr
-                    key={item.date}
-                    className={
-                      index !== forecast.length - 1 ? "border-b border-gray-700" : ""
-                    }
+                  <p
+                    className="
+                      text-center
+                      font-grotesk font-normal
+                      text-[16px] leading-[24px] tracking-[0px]
+                      text-[#99ABBD]
+                      max-w-[560px]
+                    "
                   >
-                    {/* Day */}
-                    <td className="typography-medium">
-                      {item.dayName}
-                    </td>
-
-                    {/* Temp (using high only, converted to C/F) */}
-                    <td className="typography-medium">
-                      {item.high !== null
-                        ? unit === "C"
-                          ? `${Math.round(item.high)}°C`
-                          : `${Math.round((item.high * 9) / 5 + 32)}°F`
-                        : "–"}
-                    </td>
-
-                    {/* Condition text */}
-                    <td className="typography-medium">
-                      <span className="text-gray-300 capitalize">
-                        {item.condition || "—"}
-                      </span>
-                    </td>
-
-                    <td className="py-4 pr-6 pl-4 text-center">
-                      {(() => {
-                        const iconSrc = getTableIconSrc(item.icon, item.condition);
-
-                        if (!iconSrc) {
-                          return <span className="text-gray-500">—</span>;
-                        }
-
-                        return (
-                          <img
-                            src={iconSrc}
-                            alt={item.condition || "weather icon"}
-                            className="inline-block h-10 w-10"
-                          />
-                        );
-                      })()}
-                    </td>
+                    {displayHeroDescription}
+                  </p>
+                </div>
+              </section>
 
 
+              {/* Small info cards */}
+              <section className="grid gap-6 md:grid-cols-3">
+                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
+                  <p className="typography-medium2 text-gray-300">Humidity</p>
+                  <p className="mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayHumidity}</p>
+                  <p className="mt-2 text-xs text-gray-400">Cloud</p>
+                </div>
 
-                  </tr>
-                ))}
-                {forecast.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="py-4 pl-6 pr-6 text-sm text-gray-500"
+                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
+                  <p className="typography-medium2 text-gray-300">Wind</p>
+                  <p className="mt-3 text-4xl font-semibold text-white">{displayWind}</p>
+                  <p className="mt-2 text-xs text-gray-400">Wind</p>
+                </div>
+
+                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
+                  <p className="typography-medium2 text-gray-300">Feels like</p>
+                  <p className="mt-3 text-4xl font-semibold text-white">{displayFeelsLike}</p>
+                  <p className="mt-2 text-xs text-gray-400">Thermometer</p>
+                </div>
+              </section>
+
+              {/* 5-Day Forecast */}
+             {/* 5-Day Forecast title (Figma) */}
+            <section className="w-full h-[23px] px-4 pt-5 pb-3">
+              <h2
+                className="
+                  w-full
+                  font-grotesk font-bold
+                  text-[22px] leading-[28px] tracking-[0px]
+                  text-white
+                "
+              >
+                5-Day Forecast
+              </h2>
+            </section>
+            <section>
+
+                <div className="mt-3 rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
+                  <table className="min-w-full text-sm sm:text-base border-collapse">
+                    <thead className="typography-medium">
+                      <tr className="border-b border-gray-700 bg-[#1C2129]">
+                        <th className="py-3 sm:py-4 pl-6 pr-4 text-left font-medium text-white">Day</th>
+                        <th className="px-4 py-3 sm:py-4 text-left font-medium text-white">High / Low</th>
+                        <th className="py-3 sm:py-4 pr-6 pl-4 text-left font-medium text-white">Condition</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+
+                  <tbody>
+                  {forecast.map((item, index) => (
+                    <tr
+                      key={item.date}
+                      className={`border-t border-[#E5E8EB33] ${index === 0 ? "border-t-0" : ""}`}
                     >
-                      Search for a city to see the 5-day forecast.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                      <td className="typography-medium">{item.dayName}</td>
 
+                      <td className="typography-medium3">
+                        {item.high !== null && item.low !== null ? (
+                          unit === "C"
+                            ? `${Math.round(item.high)}°C / ${Math.round(item.low)}°C`
+                            : `${Math.round((item.high * 9) / 5 + 32)}°F / ${Math.round(
+                                (item.low * 9) / 5 + 32
+                              )}°F`
+                        ) : (
+                          "–"
+                        )}
+                      </td>
+
+                      <td className="typography-medium">
+                        <span className="capitalize text-[#99ABBD]">{item.condition || "—"}</span>
+                      </td>
+
+                      <td className="py-4 pr-6 pl-4 text-center">
+                        {(() => {
+                          const iconSrc = getTableIconSrc(item.icon, item.condition);
+                          if (!iconSrc) return <span className="text-[#99ABBD]">—</span>;
+                          return (
+                            <img
+                              src={iconSrc}
+                              alt={item.condition || "weather icon"}
+                              className="inline-block h-10 w-10"
+                            />
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {forecast.length === 0 && (
+                    <tr className="border-t border-[#E5E8EB33]">
+                      <td colSpan={4} className="py-4 pl-6 pr-6 text-sm text-[#99ABBD]">
+                        No forecast available for this search.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+
+                  </table>
+                </div>
+              </section>
+
+            </>
+            ) : (
+            <div className="rounded-2xl border border-gray-700/60 bg-[#26303B] p-6 text-center text-gray-300">
+              Loading weather data...
+            </div>
+          )}
+          </div>
+        </div>
         {/* Footer */}
-        <footer className="mt-16 text-center">
-          <p className="text-m text-gray-400">
-            &copy; 2026 Weather App. All rights reserved.
-          </p>
+        <footer className="mt-10 text-center">
+          <p className="text-m text-gray-400">&copy; 2026 Weather App. All rights reserved.</p>
         </footer>
       </div>
-    </main>
+    </div>
+    </main >
   );
 }
