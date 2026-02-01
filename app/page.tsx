@@ -34,41 +34,38 @@ type GeoSuggestion = {
 };
 
 // Use custom icons for clear / clouds / rain, and fall back to OpenWeather icons for others
-const getTableIconSrc = (iconCode?: string | null, condition?: string | null) => {
-  const code = iconCode ?? "";
-  const desc = (condition ?? "").toLowerCase();
+const getWeatherIconSrc = (iconCode?: string | null) => {
+  const code = (iconCode ?? "").slice(0, 2); // "04d" -> "04"
 
-  if (desc.includes("rain") || desc.includes("shower")) return "/weather-icons/rainy.png";
-  if (desc.includes("cloud")) return "/weather-icons/partly-cloudy.png";
-  if (desc.includes("clear") || desc.includes("sun")) return "/weather-icons/sunny.png";
+  switch (code) {
+    case "01":
+      return "/weather-icons/sunny.png";
 
-  if (code) return `https://openweathermap.org/img/wn/${code}.png`;
-  return null;
+    case "02":
+      return "/weather-icons/partly-cloudy.png";
+
+    case "03":
+    case "04":
+      return "/weather-icons/partly-cloudy.png"; // ✅ المهم
+
+    case "09":
+    case "10":
+      return "/weather-icons/rainy.svg"; // أو partly-rainy حسب قرارك
+
+    case "11":
+      return "/weather-icons/thunder.svg";
+
+    case "13":
+      return "/weather-icons/snowy.svg";
+
+    case "50":
+      return "/weather-icons/mist.svg";
+
+    default:
+      return "/weather-icons/partly-cloudy.png";
+  }
 };
-const  getHeroIconSrc = (iconCode?: string | null, description?: string | null) => {
-  const code = iconCode ?? "";
-  const desc = (description ?? "").toLowerCase();
 
-  // Prefer our custom icons (match your assets)
-  if (desc.includes("rain") || desc.includes("shower") || code.includes("09") || code.includes("10")) {
-    return "/weather-icons/rainy.png";
-  }
-
-  if (desc.includes("cloud") || code.includes("02") || code.includes("03") || code.includes("04")) {
-    return "/weather-icons/partly-cloudy.png";
-  }
-
-  if (desc.includes("clear") || desc.includes("sun") || code === "01d" || code === "01n") {
-    return "/weather-icons/sunny.png";
-  }
-
-  // Fallback: OpenWeather icon if available
-  if (code) {
-    return `https://openweathermap.org/img/wn/${code}@2x.png`;
-  }
-
-  return "/weather-icons/sunny.png";
-};
 
 const STORAGE_KEY = "weather-app-recent-searches";
 const MAX_RECENT_SEARCHES = 10;
@@ -741,9 +738,9 @@ export default function Home() {
               <section className="w-full px-4 pt-1 pb-3 mt-[-37px]">
                 <div className="h-[68px] flex items-center justify-center gap-[16px]">
                   <img
-                    src={getHeroIconSrc(weather?.icon, weather?.description)}
+                    src={getWeatherIconSrc(weather?.icon)}
                     alt={weather?.description ? `${weather.description} icon` : "Weather icon"}
-                    className="w-[52px] h-[52px] rotate-180 shrink-0"
+                    className="w-[52px] h-[52px] shrink-0"
                   />
 
                   <p
@@ -835,7 +832,7 @@ export default function Home() {
 
                       <td className="py-4 pr-6 pl-4 text-center">
                         {(() => {
-                          const iconSrc = getTableIconSrc(item.icon, item.condition);
+                          const iconSrc = getWeatherIconSrc(item.icon);
                           if (!iconSrc) return <span className="text-[#99ABBD]">—</span>;
                           return (
                             <img
