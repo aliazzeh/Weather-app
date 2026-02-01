@@ -441,8 +441,14 @@ export default function Home() {
   const displayHumidity =
     weather?.humidity !== null && weather?.humidity !== undefined ? `${weather.humidity}%` : "–";
 
-  const displayWind =
-    weather?.windSpeed !== null && weather?.windSpeed !== undefined ? `${weather.windSpeed} m/s` : "–";
+    const displayWind =
+    weather?.windSpeed !== null && weather?.windSpeed !== undefined
+      ? unit === "C"
+        ? `${Math.round(weather.windSpeed)} km/h`
+        : `${Math.round(weather.windSpeed * 2.23694)} mph`
+      : "–";
+  
+  
 
   const isInitialView = !weather && !loading && !error && !showLocationPrompt;
   const displayHeroDescription = useMemo(() => {
