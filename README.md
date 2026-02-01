@@ -13,6 +13,9 @@ A production-style weather web application built with **Next.js**, **Tailwind CS
 - Error & loading states  
 - Fully responsive UI (mobile, tablet, desktop)  
 - Figma-inspired styling and UI polish  
+- Min / Max temperatures 
+- Add loading skeletons and subtle animations for better UX  
+
 
 ## 🛠 Tech Stack
 
@@ -28,10 +31,8 @@ A production-style weather web application built with **Next.js**, **Tailwind CS
 ## 📌 Notes / Future Improvements
 
 - Enhance the 5-day forecast with:
-  - Min / Max temperatures  
   - Precipitation details  
   - Sunrise & sunset times  
-- Add loading skeletons and subtle animations for better UX  
 - Support multiple languages and additional units (mph, km/h)  
 - Improve accessibility (ARIA labels, keyboard navigation)  
 - Add unit and integration tests for API routes and UI components  
