@@ -200,21 +200,21 @@ export default function Home() {
   
     return () => window.clearTimeout(t);
   }, [city]);
-  const handleSuggestionPick = (s: GeoSuggestion) => {
-    // ✅ سكّر كل القوائم فورًا
+  const handleSuggestionPick = async (s: GeoSuggestion) => {
     setShowSuggestions(false);
     setSuggestions([]);
     setShowRecentSearches(false);
   
-    // ✅ اقطع أي طلب suggestions شغال
     suggestAbortRef.current?.abort();
   
-    // ✅ نفّذ البحث بالإحداثيات (الدقة الأعلى)
-    fetchByCoordinates(s.lat, s.lon);
+    await fetchByCoordinates(s.lat, s.lon);
   
-    // ✅ امسح الـ input حتى ما ترجع الاقتراحات تظهر
     setCity("");
+  
+    // ✅ مهم جدًا: خلي الـ input يطلع من focus
+    searchInputRef.current?.blur();
   };
+  
   
   
     
@@ -310,26 +310,35 @@ export default function Home() {
       return;
     }
   
-    // ✅ سكّر كل dropdowns
-    setShowSuggestions(false);
-    setSuggestions([]);
-    setShowRecentSearches(false);
-  
-    // (اختياري بس ممتاز)
-    suggestAbortRef.current?.abort();
-  
     await fetchByCity(trimmed);
   
-    // ✅ امسح الـ input بعد البحث
+    // ✅ امسح input + سكّر القوائم
+    setCity("");
+    setShowSuggestions(false);
+    setShowRecentSearches(false);
+  
+    // ✅ blur عشان click واحد يفتح recent بعد البحث
+    searchInputRef.current?.blur();
+  };
+  
+  
+
+  const handleRecentSearchClick = async (searchTerm: string) => {
+    // سكّر القوائم فورًا
+    setShowRecentSearches(false);
+    setShowSuggestions(false);
+    setSuggestions([]);
+  
+    // اقطع أي طلب suggest شغّال (لو موجود)
+    suggestAbortRef.current?.abort();
+  
+    // نفّذ البحث مباشرة
+    await fetchByCity(searchTerm);
+  
+    // ✅ فضّي input بعد البحث
     setCity("");
   };
   
-
-  const handleRecentSearchClick = (searchTerm: string) => {
-    setCity(searchTerm);
-    setShowRecentSearches(false);
-    fetchByCity(searchTerm); // ✅ مباشر
-  };
 
   // ----------------------------
   // Location prompt logic
@@ -485,7 +494,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#0F1417] text-white">
       {/* Header full width */}
       <header className="sticky top-0 z-50 w-full bg-[#0F1417]/90 backdrop-blur border-b border-[#E5E8EB33]">
-        <div className="h-12 px-10 py-3 flex items-center justify-between">
+      <div className="h-12 px-4 sm:px-6 flex items-center justify-between">
           {/* Left: icon + title (gap 16px) */}
           <div className="flex items-center gap-4">
             <img
@@ -552,9 +561,9 @@ export default function Home() {
       )}
 
       {/* Page content */}
-      <div className="w-full px-[160px] py-3">
-        <div className="w-full max-w-[960px] mx-auto flex flex-col">
-          <div className="w-full px-6 py-5">
+      <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-3">
+      <div className="mx-auto w-full max-w-full sm:max-w-5xl flex flex-col">
+      <div className="w-full px-0 sm:px-6 py-5">
             <div className="mx-auto w-full max-w-[1440px] space-y-6 sm:space-y-8">
 
 
@@ -599,6 +608,14 @@ export default function Home() {
                           } else {
                             setShowSuggestions(false);
                             setShowRecentSearches(recentSearches.length > 0);
+                          }
+                        }}
+                        //Optin A  ? ?? ?
+                        onClick={() => {
+                          // إذا فاضي، افتح recent مباشرة
+                          if (city.trim().length === 0 && recentSearches.length > 0) {
+                            setShowRecentSearches(true);
+                            setShowSuggestions(false);
                           }
                         }}
                         
@@ -732,7 +749,7 @@ export default function Home() {
                       className="
                           w-full text-center
                           font-grotesk font-bold
-                          text-[32px] leading-[40px]
+                          text-[24px] sm:text-[32px] leading-[30px] sm:leading-[40px]
                           text-white
                         "
                     >
@@ -741,23 +758,17 @@ export default function Home() {
                   </section>
                   
                   {/* Weather description + icon */}
-              <section className="w-full px-4 pt-1 pb-3 mt-[-37px]">
-                <div className="h-[68px] flex items-center justify-center gap-[16px]">
+                  <section className="w-full px-4 pt-2 pb-3">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+
                   <img
                     src={getWeatherIconSrc(weather?.icon)}
                     alt={weather?.description ? `${weather.description} icon` : "Weather icon"}
                     className="w-[52px] h-[52px] shrink-0"
                   />
 
-                  <p
-                    className="
-                      text-center
-                      font-grotesk font-normal
-                      text-[16px] leading-[24px] tracking-[0px]
-                      text-[#99ABBD]
-                      max-w-[560px]
-                    "
-                  >
+                  <p className="text-center font-grotesk font-normal text-[14px] sm:text-[16px] leading-[22px] sm:leading-[24px] text-[#99ABBD] max-w-[560px]">
+
                     {displayHeroDescription}
                   </p>
                 </div>
@@ -765,22 +776,22 @@ export default function Home() {
 
 
               {/* Small info cards */}
-              <section className="grid gap-6 md:grid-cols-3">
-                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
-                  <p className="typography-medium2 text-gray-300">Humidity</p>
-                  <p className="mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayHumidity}</p>
+              <section className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left">
+                <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">Humidity</p>
+                  <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayHumidity}</p>
                   <p className="mt-2 text-xs text-gray-400">Cloud</p>
                 </div>
 
-                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
-                  <p className="typography-medium2 text-gray-300">Wind</p>
-                  <p className="mt-3 text-4xl font-semibold text-white">{displayWind}</p>
+                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left">
+                  <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">Wind</p>
+                  <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayWind}</p>
                   <p className="mt-2 text-xs text-gray-400">Wind</p>
                 </div>
 
-                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 text-left">
-                  <p className="typography-medium2 text-gray-300">Feels like</p>
-                  <p className="mt-3 text-4xl font-semibold text-white">{displayFeelsLike}</p>
+                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left">
+                  <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">Feels like</p>
+                  <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayFeelsLike}</p>
                   <p className="mt-2 text-xs text-gray-400">Thermometer</p>
                 </div>
               </section>
@@ -792,7 +803,8 @@ export default function Home() {
                 className="
                   w-full
                   font-grotesk font-bold
-                  text-[22px] leading-[28px] tracking-[0px]
+                  text-[18px] sm:text-[22px] leading-[24px] sm:leading-[28px]
+                  tracking-[0px]
                   text-white
                 "
               >
@@ -801,11 +813,12 @@ export default function Home() {
             </section>
             <section>
 
-                <div className="mt-3 rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
-                  <table className="min-w-full text-sm sm:text-base border-collapse">
-                    <thead className="typography-medium">
+                  <div className="mt-3 rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
+              <div className="w-full overflow-x-auto">
+                  <table className="min-w-[720px] w-full text-sm sm:text-base border-collapse">
+                  <thead className="font-grotesk font-normal text-[16px] leading-[24px]">
                       <tr className="border-b border-gray-700 bg-[#1C2129]">
-                        <th className="py-3 sm:py-4 pl-6 pr-4 text-left font-medium text-white">Day</th>
+                        <th className="py-2 sm:py-4 pl-4 sm:pl-6 pr-3 sm:pr-4 text-left font-medium text-white">Day</th>
                         <th className="px-4 py-3 sm:py-4 text-left font-medium text-white">High / Low</th>
                         <th className="py-3 sm:py-4 pr-6 pl-4 text-left font-medium text-white">Condition</th>
                         <th></th>
@@ -818,9 +831,10 @@ export default function Home() {
                       key={item.date}
                       className={`border-t border-[#E5E8EB33] ${index === 0 ? "border-t-0" : ""}`}
                     >
-                      <td className="typography-medium">{item.dayName}</td>
-
-                      <td className="typography-medium3">
+                      <td className="pl-6 pr-4 py-3 sm:py-4 font-grotesk font-normal text-[16px] leading-[24px] text-white">
+                    {item.dayName}
+                      </td>
+                      <td className="px-4 py-3 sm:py-4 font-grotesk font-normal text-[16px] leading-[24px] text-[#99ABBD]">
                         {item.high !== null && item.low !== null ? (
                           unit === "C"
                             ? `${Math.round(item.high)}°C / ${Math.round(item.low)}°C`
@@ -832,7 +846,7 @@ export default function Home() {
                         )}
                       </td>
 
-                      <td className="typography-medium">
+                      <td className="py-3 sm:py-4 pr-6 pl-4 font-grotesk font-normal text-[16px] leading-[24px]">
                         <span className="capitalize text-[#99ABBD]">{item.condition || "—"}</span>
                       </td>
 
@@ -862,6 +876,7 @@ export default function Home() {
                 </tbody>
 
                   </table>
+                </div>
                 </div>
               </section>
 

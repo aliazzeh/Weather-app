@@ -52,9 +52,9 @@
   text-align: center;
 } */
 /* color: #99ABBD */
-.typography-medium { padding-left:16px; font-family: var(--font-family); font-weight: 400; font-size: 16px; line-height: 24px; } 
+/* .typography-medium { padding-left:16px; font-family: var(--font-family); font-weight: 400; font-size: 16px; line-height: 24px; } 
 .typography-medium2 { font-family: var(--font-family); font-weight: 400; font-size: 16px; line-height: 24px; }
-/* .typography-medium3 { padding-left:16px;color: #99ABBD; font-family: var(--font-family); font-weight: 400; font-size: 16px; line-height: 24px; }  */
+.typography-medium3 { padding-left:16px;color: #99ABBD; font-family: var(--font-family); font-weight: 400; font-size: 16px; line-height: 24px; }  */
 
 @theme inline {
   --color-background: var(--background);
