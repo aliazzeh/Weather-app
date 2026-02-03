@@ -108,6 +108,40 @@ const getWeatherIconSrc = (iconCode?: string | null) => {
 
 const STORAGE_KEY = "weather-app-recent-searches";
 const MAX_RECENT_SEARCHES = 10;
+const LAST_QUERY_KEY = "weather-app-last-query";
+type LastQuery =
+  | { type: "city"; city: string }
+  | { type: "coords"; lat: number; lon: number };
+  const saveLastQuery = (q: LastQuery) => {
+    try {
+      localStorage.setItem(LAST_QUERY_KEY, JSON.stringify(q));
+    } catch {}
+  };
+  
+  const loadLastQuery = (): LastQuery | null => {
+    try {
+      const raw = localStorage.getItem(LAST_QUERY_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+  
+      if (parsed?.type === "city" && typeof parsed.city === "string") {
+        return { type: "city", city: parsed.city };
+      }
+  
+      if (
+        parsed?.type === "coords" &&
+        typeof parsed.lat === "number" &&
+        typeof parsed.lon === "number"
+      ) {
+        return { type: "coords", lat: parsed.lat, lon: parsed.lon };
+      }
+  
+      return null;
+    } catch {
+      return null;
+    }
+  };
+  
 
 const LOCATION_PROMPT_KEY = "weather-app-location-prompt-choice";
 // values: "allow" | "deny"
@@ -132,6 +166,7 @@ export default function Home() {
   const suggestAbortRef = useRef<AbortController | null>(null);
   const isTyping = city.trim().length >= 2;
   const isSelectingRef = useRef(false);
+  const [restoring, setRestoring] = useState(true);
 
   // ----------------------------
   // Recent searches: load
@@ -254,6 +289,25 @@ export default function Home() {
     // ✅ مهم جدًا: خلي الـ input يطلع من focus
     searchInputRef.current?.blur();
   };
+  //Handle the Refresch problem 
+  const getLastSearch = (): string | null => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return null;
+  
+      const arr = JSON.parse(stored);
+      return Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
+    } catch {
+      return null;
+    }
+  };
+  useEffect(() => {
+    const lastCity = getLastSearch();
+    if (lastCity) {
+      fetchByCity(lastCity);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   
   
@@ -286,7 +340,7 @@ export default function Home() {
 
       const weatherData: WeatherData = await res.json();
       setWeather(weatherData);
-
+      saveLastQuery({ type: "city", city: cityName.trim() });
       saveRecentSearch(cityName.trim());
 
       const forecastRes = await fetch(`/api/forecast?city=${encodeURIComponent(cityName)}`);
@@ -318,6 +372,7 @@ export default function Home() {
 
       const weatherData: WeatherData = await res.json();
       setWeather(weatherData);
+      saveLastQuery({ type: "coords", lat, lon });
 
       if (weatherData.city) {
         // setCity(weatherData.city);
@@ -337,6 +392,27 @@ export default function Home() {
       setShowRecentSearches(false);
     }
   };
+  //To get the letaset result in refresh
+  useEffect(() => {
+    const last = loadLastQuery();
+  
+    if (!last) {
+      setRestoring(false);
+      return;
+    }
+  
+    (async () => {
+      if (last.type === "city") {
+        await fetchByCity(last.city);
+      } else {
+        await fetchByCoordinates(last.lat, last.lon);
+      }
+      setRestoring(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+
 
   // ----------------------------
   // Search handlers
@@ -497,9 +573,7 @@ export default function Home() {
         : `${Math.round(weather.windSpeed * 2.23694)} mph`
       : "–";
   
-  
-
-  const isInitialView = !weather && !loading && !error && !showLocationPrompt;
+  const isInitialView =!restoring && !weather && !loading && !error && !showLocationPrompt ;  
   const displayHeroDescription = useMemo(() => {
     // If we have forecast high, use it (more like Figma)
     const todayHigh = forecast?.[0]?.high;
@@ -826,7 +900,7 @@ export default function Home() {
                       src={getWeatherIconSrc(weather?.icon)}
                       alt={weather?.description ? `${weather.description} icon` : "Weather icon"}
                       className="w-[52px] h-[52px] shrink-0"
-                      animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
+                      animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
                       transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
                     />
 
