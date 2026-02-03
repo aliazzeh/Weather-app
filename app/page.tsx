@@ -460,20 +460,20 @@ export default function Home() {
   // Location prompt logic
   // ----------------------------
   useEffect(() => {
-    // On first mount: decide whether to show prompt / auto-fetch
+    // ✅ إذا في آخر بحث محفوظ، لا تعمل auto-location ولا تظهر prompt
+    const last = loadLastQuery();
+    if (last) return;
+  
+    // باقي منطق location زي ما هو...
     try {
-      const saved = localStorage.getItem(LOCATION_PROMPT_KEY) as
-        | "allow"
-        | "deny"
-        | null;
-
+      const saved = localStorage.getItem(LOCATION_PROMPT_KEY) as "allow" | "deny" | null;
+  
       if (saved === "allow") {
-        // Auto-try location on subsequent visits
         if (!navigator.geolocation) {
           setError("Geolocation is not supported by your browser. Please search for a city instead.");
           return;
         }
-
+  
         navigator.geolocation.getCurrentPosition(
           (pos) => fetchByCoordinates(pos.coords.latitude, pos.coords.longitude),
           (err) => {
@@ -485,22 +485,18 @@ export default function Home() {
           },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
+  
         return;
       }
-
-      if (saved === "deny") {
-        // Do nothing → user sees EmptyState
-        return;
-      }
-
-      // No saved choice → show modal
+  
+      if (saved === "deny") return;
+  
       setShowLocationPrompt(true);
     } catch {
       setShowLocationPrompt(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
+  
   const handleLocationYes = () => {
     setShowLocationPrompt(false);
 
