@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import EmptyState from "./components/EmptyState";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
+
 
 type WeatherData = {
   city: string;
@@ -32,7 +34,44 @@ type GeoSuggestion = {
   lon: number;
   label: string;
 };
+//Animation section
 
+const pageFade: Variants = {
+  hidden: { opacity: 0, y: 10, filter: "blur(6px)" },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] }, // easeOut
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    filter: "blur(6px)",
+    transition: { duration: 0.25, ease: [0.4, 0, 1, 1] }, // easeIn
+  },
+};
+
+
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
+};
+
+const rise: Variants = {
+  hidden: { opacity: 0, y: 14, scale: 0.98 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const softPop: Variants = {
+  hidden: { opacity: 0, scale: 0.98 },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } },
+};
 // Use custom icons for clear / clouds / rain, and fall back to OpenWeather icons for others
 const getWeatherIconSrc = (iconCode?: string | null) => {
   const code = (iconCode ?? "").slice(0, 2); // "04d" -> "04"
@@ -74,6 +113,7 @@ const LOCATION_PROMPT_KEY = "weather-app-location-prompt-choice";
 // values: "allow" | "deny"
 
 export default function Home() {
+  const reduceMotion = useReducedMotion();
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
@@ -730,21 +770,42 @@ export default function Home() {
 
 
               {/* Main content */}
-              {isInitialView ? (
-                <EmptyState />
+              <AnimatePresence mode="wait">
+                {isInitialView ? (
+                  <motion.div
+                    key="empty"
+                    initial={reduceMotion ? false : "hidden"}
+                    animate="show"
+                    exit="exit"
+                    variants={pageFade}
+                    className="space-y-6 sm:space-y-8"
+                  >
+                  <EmptyState />
+                  </motion.div>
               ) : error ? (
+                <motion.div key="error" initial="hidden" animate="show" exit="exit" variants={pageFade} className="space-y-6 sm:space-y-8">
                 <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-center text-red-200">
                   {error}
                 </div>
+                </motion.div>
               ) : loading ? (
+                <motion.div key="loading" initial="hidden" animate="show" exit="exit" variants={pageFade} className="space-y-6 sm:space-y-8">
                 <div className="rounded-2xl border border-gray-700/60 bg-[#26303B] p-6 text-center text-gray-300">
                   Loading weather data...
                 </div>
+                </motion.div>
               ) : weather ? (
-                <>
+                <motion.div
+                  key="weather"
+                  initial={reduceMotion ? false : "hidden"}
+                  animate="show"
+                  exit="exit"
+                  variants={stagger}
+                  className="space-y-6 sm:space-y-8"
+                >
                   {/* Current weather section */}
                   {/* City Title */}
-                  <section className="w-full px-4 pt-0 pb-3">
+                  <motion.section variants={rise} className="w-full px-4 pt-0 pb-3">
                     <h1
                       className="
                           w-full text-center
@@ -755,46 +816,63 @@ export default function Home() {
                     >
                       {displayCity}
                     </h1>
-                  </section>
+                    </motion.section>
                   
                   {/* Weather description + icon */}
-                  <section className="w-full px-4 pt-2 pb-3">
+                  <motion.section variants={softPop} className="w-full px-4 pt-2 pb-3">
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
 
-                  <img
-                    src={getWeatherIconSrc(weather?.icon)}
-                    alt={weather?.description ? `${weather.description} icon` : "Weather icon"}
-                    className="w-[52px] h-[52px] shrink-0"
-                  />
+                    <motion.img
+                      src={getWeatherIconSrc(weather?.icon)}
+                      alt={weather?.description ? `${weather.description} icon` : "Weather icon"}
+                      className="w-[52px] h-[52px] shrink-0"
+                      animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                    />
 
                   <p className="text-center font-grotesk font-normal text-[14px] sm:text-[16px] leading-[22px] sm:leading-[24px] text-[#99ABBD] max-w-[560px]">
 
                     {displayHeroDescription}
                   </p>
                 </div>
-              </section>
+                </motion.section>
 
 
               {/* Small info cards */}
-              <section className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left">
+              <motion.section variants={stagger} className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+              <motion.div
+                variants={rise}
+                whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 260, damping: 18 }}
+                className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left"
+              >
                 <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">Humidity</p>
                   <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayHumidity}</p>
                   <p className="mt-2 text-xs text-gray-400">Cloud</p>
-                </div>
+                  </motion.div>
 
-                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left">
+                  <motion.div
+                    variants={rise}
+                    whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 18 }}
+                    className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left"
+                  >
                   <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">Wind</p>
                   <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayWind}</p>
                   <p className="mt-2 text-xs text-gray-400">Wind</p>
-                </div>
+                  </motion.div>
 
-                <div className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left">
+                  <motion.div
+                  variants={rise}
+                  whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 18 }}
+                  className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left"
+                >
                   <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">Feels like</p>
                   <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayFeelsLike}</p>
                   <p className="mt-2 text-xs text-gray-400">Thermometer</p>
-                </div>
-              </section>
+                  </motion.div>
+                  </motion.section>
 
               {/* 5-Day Forecast */}
              {/* 5-Day Forecast title (Figma) */}
@@ -880,12 +958,13 @@ export default function Home() {
                 </div>
               </section>
 
-            </>
+              </motion.div>
             ) : (
             <div className="rounded-2xl border border-gray-700/60 bg-[#26303B] p-6 text-center text-gray-300">
               Loading weather data...
             </div>
           )}
+          </AnimatePresence>
           </div>
         </div>
         {/* Footer */}

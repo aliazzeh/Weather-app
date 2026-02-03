@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@fontsource/space-grotesk": "^5.2.10",
+    "framer-motion": "^12.30.0",
     "next": "16.1.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
