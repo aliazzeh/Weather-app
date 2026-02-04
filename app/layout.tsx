@@ -25,9 +25,9 @@ export const metadata = {
     "A modern weather application that provides real-time weather conditions and a detailed 5-day forecast.Search for any city worldwide and stay updated with accurate, easy-to-read weather insights.",
 
   icons: {
-    icon: "/icon.png",
-    shortcut: "/icon.png",
-    apple: "/icon.png",
+    icon: "/Headerlogo.png",
+    shortcut: "/Headerlogo.png",
+    apple: "/Headerlogo.png",
   },
 
   openGraph: {
