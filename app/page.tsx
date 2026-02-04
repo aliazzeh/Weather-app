@@ -629,7 +629,7 @@ export default function Home() {
             </button>
 
             <img
-              src="/icon.png"
+              src="/icon2.png"
               alt="Temperature Icon"
               className="w-[25px] h-[25px]"
             />

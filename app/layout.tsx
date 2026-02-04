@@ -15,43 +15,47 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Weather App",
-    template: "%s | Weather App",
-  },
-  description: "A modern weather app showing current conditions and a 5-day forecast.",
+
+// metadataBase: new URL("https://weather-app-eta-six-12.vercel.app/"),
+export const metadata = {
+  metadataBase: new URL("https://weather-app-eta-six-12.vercel.app/"),
+
+  title: "Weather App",
+  description:
+    "A modern weather application that provides real-time weather conditions and a detailed 5-day forecast.Search for any city worldwide and stay updated with accurate, easy-to-read weather insights.",
 
   icons: {
-    icon: "/icon2.png",
-    shortcut: "/icon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 
   openGraph: {
+    type: "website",
     title: "Weather App",
-    description: "Check current weather conditions and a 5-day forecast for any city.",
-    url: "https://weather-app-eta-six-12.vercel.app/",
     siteName: "Weather App",
+    description:
+    "A modern weather application that provides real-time weather conditions and a detailed 5-day forecast.Search for any city worldwide and stay updated with accurate, easy-to-read weather insights.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og.png",
         width: 1200,
         height: 630,
         alt: "Weather App Preview",
       },
     ],
-    locale: "en_US",
-    type: "website",
   },
 
   twitter: {
     card: "summary_large_image",
     title: "Weather App",
-    description: "Check current weather conditions and a 5-day forecast for any city.",
-    images: ["/og-image.png"],
+    description:
+      "A modern weather application that provides real-time weather conditions and a detailed 5-day forecast.Search for any city worldwide and stay updated with accurate, easy-to-read weather insights.",
+    images: ["/og.png"],
   },
 };
+
+
 
 export default function RootLayout({
   children,
