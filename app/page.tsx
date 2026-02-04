@@ -909,7 +909,7 @@ export default function Home() {
 
 
               {/* Small info cards */}
-              <motion.section variants={stagger} className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+              <motion.section variants={stagger} className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
               <motion.div
                 variants={rise}
                 whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
@@ -932,17 +932,30 @@ export default function Home() {
                   <p className="mt-2 text-xs text-gray-400">Wind</p>
                   </motion.div>
 
+                  {/* Feels like wrapper (controls layout only) */}
+                  <div className="col-span-2 flex justify-center lg:col-span-1">
                   <motion.div
-                  variants={rise}
-                  whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                  className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left"
-                >
-                  <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">Feels like</p>
-                  <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayFeelsLike}</p>
-                  <p className="mt-2 text-xs text-gray-400">Thermometer</p>
+                    variants={rise}
+                    whileHover={reduceMotion ? undefined : { y: -4, scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 18 }}
+                    className="
+                      w-[calc(50%-0.5rem)]
+                      lg:w-full
+                      rounded-3xl border border-gray-700/70
+                      bg-[#26303B] p-4 sm:p-6
+                      text-center lg:text-left
+                    "
+                  >
+                    <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">
+                      Feels like
+                    </p>
+                    <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">
+                      {displayFeelsLike}
+                    </p>
+                    <p className="mt-2 text-xs text-gray-400">Thermometer</p>
                   </motion.div>
-                  </motion.section>
+                </div>
+                </motion.section>
 
               {/* 5-Day Forecast */}
              {/* 5-Day Forecast title (Figma) */}
@@ -960,8 +973,8 @@ export default function Home() {
               </h2>
             </section>
             <section>
+            <div className="mt-3 rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
 
-                  <div className="mt-3 rounded-2xl border border-gray-700/60 bg-[#0F1417] overflow-hidden">
               <div className="w-full overflow-x-auto">
                   <table className="min-w-[720px] w-full text-sm sm:text-base border-collapse">
                   <thead className="font-grotesk font-normal text-[16px] leading-[24px]">
