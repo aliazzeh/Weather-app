@@ -1,78 +1,90 @@
 {
-    "app": {
-      "title": "Weather App",
-      "header": {
-        "logoAlt": "Weather App Logo",
-        "toggleUnitAria": "Toggle temperature unit",
-        "tempIconAlt": "Temperature icon"
-      },
-      "location": {
-        "title": "Use your current location?",
-        "desc": "We can show local weather automatically. You can change this later in your browser settings.",
-        "notNow": "Not now",
-        "useLocation": "Use location"
-      },
-      "search": {
-        "placeholder": "Search for a city",
-        "suggestions": "Suggestions",
-        "recentSearches": "Recent Searches",
-        "clear": "Clear",
-        "searching": "Searching…",
-        "noMatches": "No matches."
-      },
-      "footer": "© {year} Weather App. All rights reserved."
+  "app": {
+    "title": "Weather App",
+    "header": {
+      "logoAlt": "Weather App Logo",
+      "toggleUnitAria": "Toggle temperature unit",
+      "tempIconAlt": "Temperature icon"
     },
-    "weather": {
-      "loading": "Loading weather data...",
-      "a11y": {
-        "weatherIcon": "Weather icon",
-        "weatherIconWithDesc": "{desc} icon"
-      },
-      "cards": {
-        "humidity": "Humidity",
-        "wind": "Wind",
-        "windSub": "Wind",
-        "feelsLike": "Feels like",
-        "cloud": "Cloud",
-        "thermometer": "Thermometer"
-      },
-      "forecast": {
-        "title": "5-Day Forecast",
-        "day": "Day",
-        "highLow": "High / Low",
-        "condition": "Condition",
-        "noForecast": "No forecast available for this search.",
-        "weatherIconAlt": "Weather condition icon"
-      },
-      "hero": {
-        "template": "{phrase} with a high of {high}",
-        "phrases": {
-            "mostlyClear": "Mostly clear",
-            "mostlyCloudy": "Mostly cloudy",
-            "rainy": "Rainy",
-            "stormy": "Stormy",
-            "snowy": "Snowy",
-            "foggy": "Foggy"
-        }
+    "location": {
+      "title": "Use your current location?",
+      "desc": "We can show local weather automatically. You can change this later in your browser settings.",
+      "notNow": "Not now",
+      "useLocation": "Use location"
+    },
+    "search": {
+      "placeholder": "Search for a city",
+      "suggestions": "Suggestions",
+      "recentSearches": "Recent Searches",
+      "clear": "Clear",
+      "searching": "Searching…",
+      "noMatches": "No matches."
+    },
+    "footer": "© {year} Weather App. All rights reserved."
+  },
+  "weather": {
+    "loading": "Loading weather data...",
+    "a11y": {
+      "weatherIcon": "Weather icon",
+      "weatherIconWithDesc": "{desc} icon"
+    },
+    "cards": {
+      "humidity": "Humidity",
+      "wind": "Wind",
+      "windSub": "Wind",
+      "feelsLike": "Feels like",
+      "cloud": "Cloud",
+      "thermometer": "Thermometer"
+    },
+    "forecast": {
+      "title": "5-Day Forecast",
+      "day": "Day",
+      "highLow": "High / Low",
+      "condition": "Condition",
+      "noForecast": "No forecast available for this search.",
+      "weatherIconAlt": "Weather condition icon"
+    },
+    "hero": {
+      "template": "{phrase} with a high of {high}",
+      "phrases": {
+        "mostlyClear": "Mostly clear",
+        "mostlyCloudy": "Mostly cloudy",
+        "rainy": "Rainy",
+        "stormy": "Stormy",
+        "snowy": "Snowy",
+        "foggy": "Foggy"
+      }
     },
     "conditions": {
-        "clear": "Clear sky",
-        "cloudy": "Cloudy",
-        "overcast": "Overcast clouds",
-        "scattered": "Scattered clouds",
-        "broken": "Broken clouds",
-        "rain": "Rain",
-        "snow": "Snow",
-        "fog": "Fog"
-        },
-        "days": {
-        "sun": "Sunday",
-        "mon": "Monday",
-        "tue": "Tuesday",
-        "wed": "Wednesday",
-        "thu": "Thursday",
-        "fri": "Friday",
-        "sat": "Saturday"
-        }
-}
+      "clear": "Clear sky",
+      "cloudy": "Cloudy",
+      "overcast": "Overcast clouds",
+      "scattered": "Scattered clouds",
+      "broken": "Broken clouds",
+      "rain": "Rain",
+      "snow": "Snow",
+      "fog": "Fog"
+    },
+    "days": {
+      "sun": "Sunday",
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday"
+    }
+  },
+  "empty": {
+    "title": "Find weather in seconds",
+    "subtitle": "Search for a city above — or use your current location.",
+    "chips": {
+      "useLocation": "Use my location",
+      "recent": "Recent searches",
+      "forecast": "5-day forecast",
+      "realtime": "Real-time temperature"
+    },
+    "try": "Try: {cities}",
+    "tryCities": "Amman, London, Tokyo"
+  }
 }

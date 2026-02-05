@@ -1,8 +1,16 @@
 import React from "react";
+import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 
 export default function EmptyState() {
+  const t = useTranslations("empty");
+  const locale = useLocale();
+  const isRTL = locale === "ar";  
   return (
-    <section className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 sm:p-10 text-center relative overflow-hidden">
+    <section
+      dir={isRTL ? "rtl" : "ltr"}
+      className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-6 sm:p-10 text-center relative overflow-hidden"
+    >
       {/* Ambient animated blobs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-20 -left-24 h-56 w-56 rounded-full bg-white/5 blur-3xl animate-pulse" />
@@ -24,30 +32,30 @@ export default function EmptyState() {
 
 
       <h2 className="relative text-2xl sm:text-3xl font-bold text-white tracking-tight">
-  Find weather in seconds
+      {t("title")}
 </h2>
 <p className="relative mt-2 text-sm sm:text-base text-[#99ABBD]">
-  Search for a city above — or use your current location.
+   {t("subtitle")}
 </p>
 
       {/* Static info */}
-      <div className="relative mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm text-gray-300">🌡️ Real-time temperature</p>
+      <div className={`relative mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${isRTL ? "lg:direction-rtl" : ""}`}>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 lg:flex-1">
+          <p className="text-sm text-gray-300">🌡️ {t("chips.realtime")}</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm text-gray-300">📅 5-day forecast</p>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 lg:flex-1">
+          <p className="text-sm text-gray-300">📅 {t("chips.forecast")}</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm text-gray-300">🕘 Recent searches</p>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 lg:flex-1">
+          <p className="text-sm text-gray-300">🕘 {t("chips.recent")}</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm text-gray-300">📍 Use my location</p>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 lg:flex-1">
+          <p className="text-sm text-gray-300">📍 {t("chips.useLocation")}</p>
         </div>
       </div>
 
       <p className="relative mt-6 text-xs text-gray-400">
-        Try: Amman, London, Tokyo
+      {t("try", { cities: t("tryCities") })}
       </p>
     </section>
   );

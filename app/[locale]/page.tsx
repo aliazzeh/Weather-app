@@ -607,20 +607,29 @@ type LastQuery =
   
   const displayFeelsLike =
   weather?.feelsLike !== null && weather?.feelsLike !== undefined
-  ? unit === "C"
-  ? `${Math.round(weather.feelsLike)}°C`
-  : `${Math.round((weather.feelsLike * 9) / 5 + 32)}°F`
-  : "–";
+    ? unit === "C"
+      ? isRTL
+        ? `${Math.round(weather.feelsLike)}°م`
+        : `${Math.round(weather.feelsLike)}°C`
+      : isRTL
+        ? `${Math.round((weather.feelsLike * 9) / 5 + 32)}°ف`
+        : `${Math.round((weather.feelsLike * 9) / 5 + 32)}°F`
+    : "–";
   
   const displayHumidity =
   weather?.humidity !== null && weather?.humidity !== undefined ? `${weather.humidity}%` : "–";
   
   const displayWind =
   weather?.windSpeed !== null && weather?.windSpeed !== undefined
-  ? unit === "C"
-  ? `${Math.round(weather.windSpeed)} km/h`
-  : `${Math.round(weather.windSpeed * 2.23694)} mph`
-  : "–";
+    ? unit === "C"
+      ? isRTL
+        ? `${Math.round(weather.windSpeed)} كم/س`
+        : `${Math.round(weather.windSpeed)} km/h`
+      : isRTL
+        ? `${Math.round(weather.windSpeed * 2.23694)} ميل/س`
+        : `${Math.round(weather.windSpeed * 2.23694)} mph`
+    : "–";
+
   
   const isInitialView =!restoring && !weather && !loading && !error && !showLocationPrompt ;  
   // If we have forecast high, use it (more like Figma)
@@ -742,10 +751,13 @@ type LastQuery =
                 <div className="w-full px-4 py-1">
                   {/* Container 2 */}
                   <form onSubmit={handleSearch}>
-                    <div className="flex h-12 w-full min-w-[160px] rounded-xl bg-[#26303B]">
+                  <div className="flex h-12 w-full min-w-[160px] rounded-xl bg-[#26303B]">
 
                       {/* Icon container */}
-                      <div className="flex h-12 w-10 min-w-[40px] items-center pl-4">
+                      <div
+                        className="
+                          flex h-12 w-10 min-w-[40px] items-center pl-1"
+                      >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
@@ -800,13 +812,11 @@ type LastQuery =
                         
                         placeholder={tApp("search.placeholder")}
                         className="
-                      h-12 w-full bg-transparent
-                      py-2 pr-4 pl-2
-                      font-grotesk font-normal
-                      text-[16px] leading-[24px] tracking-[0px]
-                      text-white placeholder:text-[#99ABBD]
-                      outline-none
-                    "
+                          h-12 w-full bg-transparent
+                          py-2 pr-4 pl-2
+                          font-grotesk font-normal text-[16px]
+                          text-white placeholder:text-[#99ABBD] outline-none
+                        "
                       />
                     </div>
                     {/* Geo suggestions dropdown */}
@@ -978,7 +988,12 @@ type LastQuery =
                 className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left"
               >
                 <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">{t("cards.humidity")}</p>
-                  <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayHumidity}</p>
+                <p
+                    className="
+                      text-2xl sm:text-3xl font-semibold text-white
+                     "
+               > {displayHumidity}
+                  </p>
                   <p className="mt-2 text-xs text-gray-400">{t("cards.cloud")}</p>
                   </motion.div>
 
@@ -989,7 +1004,9 @@ type LastQuery =
                     className="rounded-3xl border border-gray-700/70 bg-[#26303B] p-4 sm:p-6 text-center lg:text-left"
                   >
                   <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">{t("cards.wind")}</p>
-                  <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">{displayWind}</p>
+                  <p className="text-2xl sm:text-3xl font-semibold text-white">
+                    {displayWind}
+                  </p>
                   <p className="mt-2 text-xs text-gray-400">{t("cards.windSub")}</p>
                   </motion.div>
 
@@ -1010,9 +1027,9 @@ type LastQuery =
                     <p className="font-grotesk font-normal text-[16px] leading-[24px] text-gray-300">
                     {t("cards.feelsLike")}
                     </p>
-                    <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-semibold text-white">
-                      {displayFeelsLike}
-                    </p>
+                    <p className="text-2xl sm:text-3xl font-semibold text-white">
+                    {displayFeelsLike}
+                  </p>
                     <p className="mt-2 text-xs text-gray-400">{t("cards.thermometer")}</p>
                   </motion.div>
                 </div>
