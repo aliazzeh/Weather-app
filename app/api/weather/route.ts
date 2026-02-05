@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import countries from "world-countries";
 
 const API_BASE = "https://api.openweathermap.org/data/2.5/weather";
-import countries from "world-countries";
 
 const countryNameByCca2: Record<string, string> = Object.fromEntries(
   (countries as any[]).map((c) => [c.cca2, c.name?.common ?? c.cca2])
@@ -9,19 +9,20 @@ const countryNameByCca2: Record<string, string> = Object.fromEntries(
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+
   const city = searchParams.get("city");
   const lat = searchParams.get("lat");
   const lon = searchParams.get("lon");
+  const lang = searchParams.get("lang") === "ar" ? "ar" : "en";
 
   if (!city && (!lat || !lon)) {
     return NextResponse.json(
-      { error: "Either city query parameter or lat/lon coordinates are required" },
+      { error: "Either city or lat/lon is required" },
       { status: 400 }
     );
   }
 
   const apiKey = process.env.WEATHER_API_KEY;
-
   if (!apiKey) {
     return NextResponse.json(
       { error: "WEATHER_API_KEY is not set on the server" },
@@ -31,17 +32,16 @@ export async function GET(request: Request) {
 
   try {
     let url: string;
+
     if (lat && lon) {
-      // Use coordinates
-      url = `${API_BASE}?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+      url = `${API_BASE}?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=${lang}`;
     } else {
-      // Use city name
       url = `${API_BASE}?q=${encodeURIComponent(
         city!
-      )}&appid=${apiKey}&units=metric`;
+      )}&appid=${apiKey}&units=metric&lang=${lang}`;
     }
 
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: "no-store" });
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => null);
@@ -56,18 +56,24 @@ export async function GET(request: Request) {
 
     const data = await res.json();
 
-    // Pick only what we need
+    // ✅ Localize country name
     const countryCode = data.sys?.country ?? "";
+    const dn = new Intl.DisplayNames([lang], { type: "region" });
+
     const mapped = {
-      city: data.name,
-      country: countryCode, // keep code if you want
-      countryName: countryNameByCca2[countryCode] ?? countryCode, // ✅ add this
+      city: data.name, // OpenWeather يرجّع الاسم حسب lang
+      countryCode,
+      countryName:
+        dn.of(countryCode) ??
+        countryNameByCca2[countryCode] ??
+        countryCode,
+
       temp: data.main?.temp ?? null,
       feelsLike: data.main?.feels_like ?? null,
       humidity: data.main?.humidity ?? null,
       windSpeed: data.wind?.speed ?? null,
       description: data.weather?.[0]?.description ?? "",
-      icon: data.weather?.[0]?.icon ?? "",
+      icon: data.weather?.[0]?.icon ?? ""
     };
 
     return NextResponse.json(mapped);

@@ -1,0 +1,78 @@
+{
+    "app": {
+      "title": "تطبيق الطقس",
+      "header": {
+        "logoAlt": "شعار تطبيق الطقس",
+        "toggleUnitAria": "تبديل وحدة الحرارة",
+        "tempIconAlt": "أيقونة الحرارة"
+      },
+      "location": {
+        "title": "استخدام موقعك الحالي؟",
+        "desc": "يمكننا عرض الطقس المحلي تلقائيًا. يمكنك تغيير ذلك لاحقًا من إعدادات المتصفح.",
+        "notNow": "ليس الآن",
+        "useLocation": "استخدم الموقع"
+      },
+      "search": {
+        "placeholder": "ابحث عن مدينة",
+        "suggestions": "اقتراحات",
+        "recentSearches": "عمليات البحث الأخيرة",
+        "clear": "مسح",
+        "searching": "جاري البحث…",
+        "noMatches": "لا توجد نتائج."
+      },
+      "footer": "© {year} تطبيق الطقس. جميع الحقوق محفوظة."
+    },
+    "weather": {
+      "loading": "جاري تحميل بيانات الطقس...",
+      "a11y": {
+        "weatherIcon": "أيقونة الطقس",
+        "weatherIconWithDesc": "أيقونة {desc}"
+      },
+      "cards": {
+        "humidity": "الرطوبة",
+        "wind": "الرياح",
+        "windSub": "الرياح",
+        "feelsLike": "المحسوس",
+        "cloud": "سحب",
+        "thermometer": "مقياس الحرارة"
+      },
+      "forecast": {
+        "title": "توقعات 5 أيام",
+        "day": "اليوم",
+        "highLow": "العظمى / الصغرى",
+        "condition": "الحالة",
+        "noForecast": "لا يوجد توقعات متاحة لهذا البحث.",
+        "weatherIconAlt": "أيقونة حالة الطقس"
+      },
+      "hero": {
+        "template": "{phrase} مع أعلى درجة {high}",
+        "phrases": {
+            "mostlyClear": "صحو غالبًا",
+            "mostlyCloudy": "غائم غالبًا",
+            "rainy": "ممطر",
+            "stormy": "عاصف",
+            "snowy": "مثلج",
+            "foggy": "ضبابي"
+        }
+    },
+    "conditions": {
+        "clear": "سماء صافية",
+        "cloudy": "غائم",
+        "overcast": "غيوم كثيفة",
+        "scattered": "غيوم متفرقة",
+        "broken": "غيوم متقطعة",
+        "rain": "مطر",
+        "snow": "ثلج",
+        "fog": "ضباب"
+    },
+        "days": {
+        "sun": "الأحد",
+        "mon": "الإثنين",
+        "tue": "الثلاثاء",
+        "wed": "الأربعاء",
+        "thu": "الخميس",
+        "fri": "الجمعة",
+        "sat": "السبت"
+    }
+}
+}
