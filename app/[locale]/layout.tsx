@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 // import { getMessages } from "next-intl/server";
+import ThemeProvider from "../components/ThemeProvider";
 
 import "../globals.css";
 import "@fontsource/space-grotesk/400.css";
@@ -71,10 +72,12 @@ export default async function RootLayout({
   const isArabic = safeLocale === "ar";
 
   return (
-    <html lang={safeLocale} dir={isArabic ? "rtl" : "ltr"}>
+    <html lang={safeLocale} dir={isArabic ? "rtl" : "ltr"} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NextIntlClientProvider locale={safeLocale} messages={messages}>
+        <ThemeProvider>
           {children}
+        </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -20,6 +20,13 @@
       "searching": "Searching…",
       "noMatches": "No matches."
     },
+    "errors": {
+      "enterCity": "Please enter a city name.",
+      "cityNotFound": "City not found. Please try another city.",
+      "fetchFailed": "Couldnt fetch weather data. Please try again.",
+      "locationFetchFailed": "Couldn’t fetch weather for your location. Please try again.",
+      "unexpected": "Something went wrong. Please try again."
+    },
     "footer": "© {year} Weather App. All rights reserved."
   },
   "weather": {

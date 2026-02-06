@@ -12,7 +12,7 @@ export default function LanguageToggle({ locale }: { locale: "en" | "ar" }) {
   return (
     <Link
       href={newPath}
-      className="text-sm font-semibold text-white hover:text-gray-300 transition"
+      className="text-sm font-semibold text-(--header-icon) hover:text-gray-300 transition"
       aria-label="Toggle language"
     >
       {nextLocale.toUpperCase()}
